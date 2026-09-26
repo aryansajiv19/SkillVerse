@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Cosmic galaxy theme */
+    --background: 232 59% 10%;
+    --foreground: 228 100% 95%;
+
+    /* Glassmorphism cards */
+    --card: 232 45% 14%;
+    --card-foreground: 228 100% 95%;
+
+    --popover: 232 45% 14%;
+    --popover-foreground: 228 100% 95%;
+
+    /* Neon cosmic accents */
+    --primary: 228 100% 95%;
+    --primary-foreground: 232 59% 10%;
+
+    /* Cyan for unlocked skills */
+    --secondary: 190 90% 60%;
+    --secondary-foreground: 232 59% 10%;
+
+    /* Muted cosmic elements */
+    --muted: 232 35% 20%;
+    --muted-foreground: 229 25% 64%;
+
+    /* Accent - electric purple */
+    --accent: 273 100% 74%;
+    --accent-foreground: 232 59% 10%;
+
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders with cosmic glow */
+    --border: 232 35% 27%;
+    --input: 232 35% 22%;
+    --ring: 190 90% 60%;
+
+    --radius: 0.75rem;
+
+    /* Glow effects */
+    --glow-completed: 45 100% 72%;
+    --glow-unlocked: 228 100% 95%;
+    --glow-locked: 232 20% 40%;
+    
+    /* Nebula gradient */
+    --nebula-start: 232 59% 8%;
+    --nebula-mid: 240 50% 12%;
+    --nebula-end: 250 45% 11%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-auto font-sans antialiased;
+  }
+
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .cosmic-glow {
+    text-shadow: 0 0 24px hsl(var(--foreground) / 0.25);
+  }
+  
+  .glass-panel {
+    background: linear-gradient(135deg, hsl(var(--card) / 0.8), hsl(var(--card) / 0.6));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid hsl(var(--border) / 0.4);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 0 hsl(var(--foreground) / 0.06);
+  }
+  
+  .skill-glow-completed {
+    filter: drop-shadow(0 0 20px hsl(var(--glow-completed))) 
+            drop-shadow(0 0 40px hsl(var(--glow-completed) / 0.6));
+  }
+  
+  .skill-glow-unlocked {
+    filter: drop-shadow(0 0 15px hsl(var(--glow-unlocked))) 
+            drop-shadow(0 0 30px hsl(var(--glow-unlocked) / 0.5));
+  }
+  
+  .skill-glow-locked {
+    filter: drop-shadow(0 0 8px hsl(var(--glow-locked)));
+  }
+}
