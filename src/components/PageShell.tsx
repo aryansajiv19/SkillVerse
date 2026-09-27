@@ -26,7 +26,7 @@ export const PageShell = ({ title, subtitle, children, width = "max-w-6xl" }: {
       <Navigation />
       <main className={`container relative mx-auto px-4 pb-28 pt-28 ${width}`}>
         <div className="mb-10">
-          <h1 ref={h1} tabIndex={-1} className="break-words text-4xl font-extrabold outline-none sm:text-5xl">{title}</h1>
+          <h1 ref={h1} tabIndex={-1} className="break-words text-[2rem] font-extrabold outline-none sm:text-5xl">{title}</h1>
           {subtitle && <p className="mt-3 max-w-2xl text-lg text-muted-foreground">{subtitle}</p>}
         </div>
         {children}
