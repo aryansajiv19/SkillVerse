@@ -114,3 +114,28 @@ After editing `src/content`, run `npm run db:catalog` and commit `supabase/catal
 - Quiz answers ship in the client bundle; the server can only bound XP to the catalog, not prove a quiz was solved.
 - Anonymous users accumulate; add a scheduled cleanup of stale guests before real traffic.
 - Username generation is `cadet_` + 10 hex chars of md5(user id): collision is possible but negligible.
+
+---
+
+## Session 2 (2026-09-27): checkpoint-2 status
+
+Done since checkpoint-1 (see commit e50dba7 / tag `checkpoint-2`):
+- 164-agent review of checkpoint-1 with 3-skeptic verification; content/security/logic fixes applied in the v2 foundation.
+- DB v2: server-side quiz grading (private answer key), least-privilege grants, trigger-maintained `player_stats`,
+  indexed leaderboard, Realtime, cascading `reset_skill`, per-user rate limits, pg_cron guest purge. 44 pgTAP tests pass.
+- Content pipeline: `content/` authoring → `scripts/catalog.ts` → public catalog (no answers, shuffled options) + SQL.
+  `npm run check:bundle` proves no answers ship. 41 Vitest tests pass.
+- Auth hardened; GitHub linking replaces unverified email upgrade. Code-split routes, error boundary, page titles.
+- CI workflow (`.github/workflows/ci.yml`) and `vercel.json` added. Playwright + axe installed (not yet used).
+
+Open items, in order:
+1. **Security review flag**: an automated commit review reported a possible authorization bypass in
+   `supabase/migrations/20260927020424_server_side_grading.sql`. Investigate before deploying.
+2. Remaining confirmed review findings not yet fixed: runner (`deepEqual` key check, `checkCss` cascade/selector
+   lists, worker `onerror`, overlapping runs), CodeEditor Tab keyboard trap, a11y-1 tests, PlanetDebugger level 3,
+   mobile nav/HUD overlaps, intro dialog focus trap, AI tutor focus/Escape, contrast issues.
+   Full list: review workflow result (task w8kybuvot output).
+3. Planned fan-out (worktrees): galaxy pan/zoom + ignite animation; learn fixes + resources; public profiles +
+   heatmap + live leaderboard; mobile nav + ⌘K + accessible tutor + OG image; About page; Playwright E2E in CI.
+4. Blocked on Aryan: free Supabase org (for hosting), optional Gemini key, GitHub OAuth app (for account linking).
+5. Deploy (Vercel + hosted Supabase), README rewrite, push `revive`, open PR.
