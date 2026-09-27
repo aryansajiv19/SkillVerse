@@ -25,10 +25,24 @@ export interface QuizChallenge extends Base {
   questions: Question[];
 }
 
+/**
+ * Named HTML checks, implemented in src/lib/runner.ts (the catalog is JSON, so tests
+ * can't carry functions).
+ * - labelled-controls: every input, select and textarea has an accessible name
+ *   (label[for], a wrapping label, aria-label or aria-labelledby), and there is at least one
+ * - submit-button: a visible submit button with text inside a form
+ * - img-alt: every img has non-empty alt text
+ * - no-click-handlers: no onclick on elements that aren't natively interactive
+ */
+export type HtmlCheck = "labelled-controls" | "submit-button" | "img-alt" | "no-click-handlers";
+
 export type CodeTest =
-  | { lang: "js"; expr: string; expected: unknown }
+  /** `label` replaces the expression in the results list when the expression is long. */
+  | { lang: "js"; expr: string; expected: unknown; label?: string }
   | { lang: "html"; selector: string; label: string }
-  | { lang: "css"; selector: string; prop: string; value: string[]; label: string };
+  | { lang: "html"; check: HtmlCheck; label: string }
+  /** Passes when any of `prop` resolves (through the cascade) to one of `value`, or to a non-zero amount. */
+  | { lang: "css"; selector: string; prop: string | string[]; value: string[] | "non-zero"; label: string };
 
 export interface CodeChallenge extends Base {
   type: "code";

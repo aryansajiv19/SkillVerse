@@ -47,13 +47,16 @@ insert into public.challenges (id, skill_id, xp, kind) values
   ('a11y-1', 'a11y', 60, 'code'),
   ('tailwind-check', 'tailwind', 30, 'quiz'),
   ('typescript-check', 'typescript', 30, 'quiz'),
+  ('typescript-1', 'typescript', 50, 'code'),
   ('react-check', 'react', 30, 'quiz'),
+  ('react-1', 'react', 60, 'code'),
   ('nextjs-check', 'nextjs', 30, 'quiz'),
   ('nodejs-check', 'nodejs', 30, 'quiz'),
   ('nodejs-1', 'nodejs', 50, 'code'),
   ('express-check', 'express', 30, 'quiz'),
   ('express-1', 'express', 60, 'code'),
   ('rest-apis-check', 'rest-apis', 30, 'quiz'),
+  ('rest-apis-1', 'rest-apis', 50, 'code'),
   ('sql-check', 'sql', 30, 'quiz'),
   ('postgres-check', 'postgres', 30, 'quiz'),
   ('auth-check', 'auth', 30, 'quiz'),
@@ -63,19 +66,26 @@ insert into public.challenges (id, skill_id, xp, kind) values
   ('pandas-check', 'pandas', 30, 'quiz'),
   ('pandas-1', 'pandas', 60, 'code'),
   ('data-viz-check', 'data-viz', 30, 'quiz'),
+  ('data-viz-1', 'data-viz', 60, 'code'),
   ('ml-basics-check', 'ml-basics', 30, 'quiz'),
+  ('ml-basics-1', 'ml-basics', 50, 'code'),
   ('deep-learning-check', 'deep-learning', 30, 'quiz'),
+  ('deep-learning-1', 'deep-learning', 60, 'code'),
   ('llm-apps-check', 'llm-apps', 30, 'quiz'),
+  ('llm-apps-1', 'llm-apps', 60, 'code'),
   ('git-check', 'git', 30, 'quiz'),
   ('linux-check', 'linux', 30, 'quiz'),
+  ('linux-1', 'linux', 50, 'code'),
   ('docker-check', 'docker', 30, 'quiz'),
   ('ci-cd-check', 'ci-cd', 30, 'quiz'),
+  ('ci-cd-1', 'ci-cd', 50, 'code'),
   ('kubernetes-check', 'kubernetes', 30, 'quiz'),
   ('cloud-check', 'cloud', 30, 'quiz'),
+  ('cloud-1', 'cloud', 60, 'code'),
   ('iac-check', 'iac', 30, 'quiz')
 on conflict (id) do update set skill_id = excluded.skill_id, xp = excluded.xp, kind = excluded.kind;
 
-delete from public.challenges where id not in ('html-check', 'html-1', 'css-check', 'css-1', 'css-2', 'javascript-check', 'js-1', 'js-2', 'js-3', 'js-game-1', 'a11y-check', 'a11y-1', 'tailwind-check', 'typescript-check', 'react-check', 'nextjs-check', 'nodejs-check', 'nodejs-1', 'express-check', 'express-1', 'rest-apis-check', 'sql-check', 'postgres-check', 'auth-check', 'auth-1', 'fastapi-check', 'python-check', 'pandas-check', 'pandas-1', 'data-viz-check', 'ml-basics-check', 'deep-learning-check', 'llm-apps-check', 'git-check', 'linux-check', 'docker-check', 'ci-cd-check', 'kubernetes-check', 'cloud-check', 'iac-check');
+delete from public.challenges where id not in ('html-check', 'html-1', 'css-check', 'css-1', 'css-2', 'javascript-check', 'js-1', 'js-2', 'js-3', 'js-game-1', 'a11y-check', 'a11y-1', 'tailwind-check', 'typescript-check', 'typescript-1', 'react-check', 'react-1', 'nextjs-check', 'nodejs-check', 'nodejs-1', 'express-check', 'express-1', 'rest-apis-check', 'rest-apis-1', 'sql-check', 'postgres-check', 'auth-check', 'auth-1', 'fastapi-check', 'python-check', 'pandas-check', 'pandas-1', 'data-viz-check', 'data-viz-1', 'ml-basics-check', 'ml-basics-1', 'deep-learning-check', 'deep-learning-1', 'llm-apps-check', 'llm-apps-1', 'git-check', 'linux-check', 'linux-1', 'docker-check', 'ci-cd-check', 'ci-cd-1', 'kubernetes-check', 'cloud-check', 'cloud-1', 'iac-check');
 delete from public.skills where id not in ('html', 'css', 'javascript', 'a11y', 'tailwind', 'typescript', 'react', 'nextjs', 'nodejs', 'express', 'rest-apis', 'sql', 'postgres', 'auth', 'fastapi', 'python', 'pandas', 'data-viz', 'ml-basics', 'deep-learning', 'llm-apps', 'git', 'linux', 'docker', 'ci-cd', 'kubernetes', 'cloud', 'iac');
 
 -- Answer key: only reachable through check_answer() / submit_quiz().
