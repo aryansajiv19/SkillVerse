@@ -31,3 +31,6 @@ dist-ssr
 # supabase
 supabase/.temp
 supabase/.branches
+
+# local tooling
+.claude/
