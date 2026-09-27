@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Check, Lock } from "lucide-react";
@@ -18,18 +18,35 @@ import { useProgress } from "@/hooks/useProgress";
 export const SkillPanel = ({
   skill,
   onClose,
+  onCloseAutoFocus,
 }: {
   skill: SkillState | null;
   onClose: () => void;
-}) => (
-  <Sheet open={!!skill} onOpenChange={(open) => !open && onClose()}>
-    <SheetContent className="glass-panel flex w-full flex-col gap-8 overflow-y-auto border-l sm:max-w-md">
-      {skill && <PanelBody skill={skill} />}
-    </SheetContent>
-  </Sheet>
-);
+  /** The panel has no trigger element, so the caller says where focus goes back to. */
+  onCloseAutoFocus?: (e: Event) => void;
+}) => {
+  const title = useRef<HTMLHeadingElement>(null);
+  // Keep showing the last skill while the sheet slides out, instead of an empty panel.
+  const shown = useRef(skill);
+  if (skill) shown.current = skill;
+  return (
+    <Sheet open={!!skill} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent
+        className="glass-panel flex w-full flex-col gap-8 overflow-y-auto border-l sm:max-w-md"
+        // Start on the title, not the first button: for a mastered skill that would be "Reset skill".
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          title.current?.focus();
+        }}
+        onCloseAutoFocus={onCloseAutoFocus}
+      >
+        {shown.current && <PanelBody key={shown.current.id} skill={shown.current} title={title} />}
+      </SheetContent>
+    </Sheet>
+  );
+};
 
-const PanelBody = ({ skill }: { skill: SkillState }) => {
+const PanelBody = ({ skill, title }: { skill: SkillState; title: RefObject<HTMLHeadingElement> }) => {
   const { mastered, doneChallenges, resetSkill } = useProgress();
   const [confirming, setConfirming] = useState(false);
   // Everything that would reset with this skill: mastered skills that (transitively) require it.
@@ -45,10 +62,14 @@ const PanelBody = ({ skill }: { skill: SkillState }) => {
 
   const reset = () =>
     resetSkill.mutate(skill.id, {
-      onSuccess: (ids) =>
+      onSuccess: (ids) => {
+        // The confirm buttons unmount with the mastered state; keep focus inside the panel.
+        setConfirming(false);
+        title.current?.focus();
         toast(`${ids.length > 1 ? `${ids.length} skills` : skill.name} reset`, {
           description: "Take the skill check again whenever you're ready.",
-        }),
+        });
+      },
       onError: (e: Error) => toast.error(e.message),
     });
 
@@ -61,7 +82,7 @@ const PanelBody = ({ skill }: { skill: SkillState }) => {
         >
           {track.constellation}, {track.name}
         </p>
-        <SheetTitle className="text-4xl font-extrabold">
+        <SheetTitle ref={title} tabIndex={-1} className="break-words pr-6 text-4xl font-extrabold outline-none">
           {skill.name}
         </SheetTitle>
         <SheetDescription className="text-base leading-relaxed text-foreground/80">

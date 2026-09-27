@@ -1,17 +1,25 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Flame } from "lucide-react";
-import { ThreeGalaxyCanvas } from "@/components/galaxy/ThreeGalaxyCanvas";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ShootingStars } from "@/components/ShootingStars";
 import { Navigation } from "@/components/Navigation";
+import { usePageTitle } from "@/components/PageShell";
 import { SkillStar } from "@/components/SkillStar";
 import { SkillPanel } from "@/components/SkillPanel";
 import { ConstellationLines } from "@/components/ConstellationLines";
-import { Button } from "@/components/ui/button";
+import { IntroDialog } from "@/components/map/IntroDialog";
+import { Hud, TrackFocus, ZoomControls } from "@/components/map/MapControls";
+import { usePanZoom } from "@/components/map/usePanZoom";
+import { useReducedMotion } from "@/components/map/useReducedMotion";
+import { GALAXY, WORLD, atWorld, boundsOf, trackBounds, worldPos, type Insets } from "@/components/map/geometry";
 import { useProgress } from "@/hooks/useProgress";
 import { levelProgress } from "@/lib/progress";
-import { tracks, type TrackId } from "@/content/skills";
+import { tracks, unlocksOf, type TrackId } from "@/content/skills";
 import { cn } from "@/lib/utils";
+
+// three.js is the heaviest thing on the page, so the stars render first and the sky fades in after.
+const ThreeGalaxyCanvas = lazy(() => import("@/components/galaxy/ThreeGalaxyCanvas").then((m) => ({ default: m.ThreeGalaxyCanvas })));
+
+const SKY = "radial-gradient(ellipse at 50% 40%, hsl(232 55% 13%) 0%, hsl(232 60% 8%) 45%, hsl(235 70% 4%) 100%)";
 
 const INTRO_KEY = "skillverse:intro-seen";
 const seenIntro = () => {
@@ -22,139 +30,291 @@ const seenIntro = () => {
   }
 };
 
+// Each constellation's name sits off the outer corner of its own cluster.
+const CONSTELLATIONS = tracks.map((t) => {
+  const b = trackBounds.get(t.id)!;
+  const left = b.x0 + b.x1 < WORLD.w;
+  const top = b.y0 + b.y1 < WORLD.h;
+  return {
+    track: t,
+    left,
+    transform: atWorld(
+      { x: left ? b.x0 : b.x1, y: top ? b.y0 : b.y1 },
+      `translate(${left ? "-12px" : "calc(12px - 100%)"}, ${top ? "calc(-100% - 30px)" : "34px"})`,
+    ),
+  };
+});
+
+/**
+ * Screen edges kept clear of stars: the fixed nav, the bottom controls and the tutor button,
+ * and the zoom column (a right margin on wide screens; part of the bottom band on phones,
+ * where the map is wider than the screen and would slide under a side column).
+ */
+const safeInsets = (vw: number, vh: number, controls: (HTMLElement | null)[]): Insets => {
+  const phone = vw < 640;
+  const tops = controls.filter((el, i) => el && (phone || i === 0)).map((el) => el!.getBoundingClientRect().top);
+  return {
+    top: 72,
+    right: phone ? 16 : 80,
+    bottom: Math.max(92, ...tops.map((t) => vh - t + 12)),
+    left: phone ? 16 : 24,
+  };
+};
+
+interface LitSequence {
+  id: string;
+  targets: string[];
+  phase: "frame" | "ignite";
+  landed: Set<string>;
+  message: string;
+}
+
 const Index = () => {
-  const { skills, stats } = useProgress();
+  usePageTitle("Galaxy");
+  const { skills, stats, loading } = useProgress();
+  const reduced = useReducedMotion();
+  const [params, setParams] = useSearchParams();
+  const litParam = params.get("lit");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focus, setFocus] = useState<TrackId | null>(null);
-  const [intro, setIntro] = useState(!seenIntro());
-  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
+  // Arriving from a first mastery means they've been here before; don't cover the moment.
+  const [intro, setIntro] = useState(() => !litParam && !seenIntro());
+  const [lit, setLit] = useState<LitSequence | null>(null);
+  const [announcement, setAnnouncement] = useState("");
 
+  const stackRef = useRef<HTMLDivElement>(null);
+  const zoomRef = useRef<HTMLDivElement>(null);
+  const getSafe = useCallback((vw: number, vh: number) => safeInsets(vw, vh, [stackRef.current, zoomRef.current]), []);
+  const { viewportRef, groupRef, onKeyDown, show, fit, reveal, zoomBy, contains, ZOOM_STEP } = usePanZoom({ getSafe, reduced, watch: stackRef });
+
+  const lastSelected = useRef<string | null>(null);
+  const introFocus = useRef<string | null>(null);
+  const litTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const litStarted = useRef(false);
+
+  const focusStar = useCallback(
+    (id: string) => viewportRef.current?.querySelector<HTMLElement>(`[data-star="${id}"]`)?.focus({ preventScroll: true }),
+    [viewportRef],
+  );
+  const clearLitParam = useCallback(
+    () =>
+      setParams(
+        (p) => {
+          const next = new URLSearchParams(p);
+          next.delete("lit");
+          return next;
+        },
+        { replace: true },
+      ),
+    [setParams],
+  );
+  // After the lit moment, land on the star, unless the user has already moved focus elsewhere.
+  const settleOn = useCallback(
+    (id: string) => {
+      const a = document.activeElement;
+      if (!a || a === document.body || viewportRef.current?.contains(a)) focusStar(id);
+    },
+    [focusStar, viewportRef],
+  );
+
+  // The "lit" moment after a first-time mastery: frame the star, ignite it, then draw its
+  // constellation lines out to the stars it just unlocked.
   useEffect(() => {
-    const onMove = (e: MouseEvent) => setMouse({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
+    if (!litParam || litStarted.current || loading || intro) return;
+    const skill = skills.find((s) => s.id === litParam);
+    if (skill && !skill.mastered) {
+      // Progress may still be refetching after the quiz; give it a moment before giving up.
+      const t = setTimeout(() => {
+        litStarted.current = true;
+        clearLitParam();
+      }, 4000);
+      return () => clearTimeout(t);
+    }
+    litStarted.current = true;
+    if (!skill) return clearLitParam();
+
+    const targets = unlocksOf(skill.id)
+      .map((u) => skills.find((s) => s.id === u.id)!)
+      .filter((s) => s.unlocked && !s.mastered);
+    const message = `${skill.name} is lit.${targets.length ? ` Unlocked: ${targets.map((t) => t.name).join(", ")}.` : ""}`;
+    const box = boundsOf([skill, ...targets]);
+
+    if (reduced) {
+      show(box, 0, 1.1);
+      clearLitParam();
+      settleOn(skill.id);
+      setAnnouncement(message);
+      return;
+    }
+    setLit({ id: skill.id, targets: targets.map((t) => t.id), phase: "frame", landed: new Set(), message });
+    show(box, 900, 1.1);
+    litTimers.current.push(
+      setTimeout(() => {
+        setLit((l) => l && { ...l, phase: "ignite" });
+        setAnnouncement(message);
+      }, 950),
+    );
+  }, [litParam, loading, intro, skills, reduced, show, clearLitParam, settleOn]);
+
+  // Ends once every line has landed and the new stars have faded in.
+  useEffect(() => {
+    if (lit?.phase !== "ignite" || lit.landed.size < lit.targets.length) return;
+    const id = lit.id;
+    const t = setTimeout(() => {
+      setLit(null);
+      clearLitParam();
+      settleOn(id);
+    }, lit.targets.length ? 700 : 1100);
+    return () => clearTimeout(t);
+  }, [lit, clearLitParam, settleOn]);
+
+  useEffect(() => () => litTimers.current.forEach(clearTimeout), []);
+
+  // While the sequence plays, show the lit star and its new neighbours as they were before.
+  const display = useMemo(
+    () =>
+      !lit
+        ? skills
+        : skills.map((s) =>
+            s.id === lit.id && lit.phase === "frame" ? { ...s, mastered: false }
+            : lit.targets.includes(s.id) && !lit.landed.has(s.id) ? { ...s, unlocked: false }
+            : s,
+          ),
+    [skills, lit],
+  );
+
+  const focusTrack = (track: TrackId | null) => {
+    setFocus(track);
+    const box = track ? trackBounds.get(track)! : GALAXY;
+    if (contains(box)) return;
+    if (track) show(box, 450);
+    else fit(450);
+  };
 
   const closeIntro = (track: TrackId | null) => {
-    setFocus(track);
     setIntro(false);
     try {
       localStorage.setItem(INTRO_KEY, "1");
     } catch {
       /* private mode: show the intro again next time */
     }
+    const inTrack = display.filter((s) => s.track === track);
+    introFocus.current = (inTrack.find((s) => s.unlocked && !s.mastered) ?? inTrack[0])?.id ?? null;
+    if (track) focusTrack(track);
   };
 
   const selected = skills.find((s) => s.id === selectedId) ?? null;
   const lvl = levelProgress(stats.xp);
-  const masteredCount = skills.filter((s) => s.mastered).length;
 
   return (
-    <div className="relative h-screen overflow-hidden">
-      <ThreeGalaxyCanvas mousePosition={mouse} />
+    <div className="relative h-[100dvh] overflow-hidden">
+      <div aria-hidden className="fixed inset-0 -z-20" style={{ background: SKY }} />
+      <Suspense fallback={null}>
+        <ThreeGalaxyCanvas />
+      </Suspense>
       <ShootingStars />
+      {/* Keeps the nav legible when the map is panned under it. */}
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[72px] bg-gradient-to-b from-background/80 to-transparent" />
       <Navigation />
+      <main>
+        <h1 className="sr-only">Skill galaxy</h1>
 
-      {/* The map scrolls sideways on narrow screens instead of squashing stars together */}
-      <div className="absolute inset-0 overflow-x-auto overflow-y-hidden">
-        <div className="relative h-full min-w-[960px]">
-          <ConstellationLines skills={skills} focus={focus} />
-          {tracks.map((t, i) => (
+        <div
+          ref={viewportRef}
+          role="region"
+          aria-label="Skill map"
+          aria-describedby="map-help"
+          tabIndex={0}
+          onKeyDown={onKeyDown}
+          className="absolute inset-0 cursor-grab touch-none select-none overflow-hidden outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--ring))] data-[dragging]:cursor-grabbing"
+          style={{ overflow: "clip" }}
+        >
+          <ConstellationLines
+            ref={groupRef}
+            skills={display}
+            focus={focus}
+            beams={
+              lit?.phase === "ignite" && lit.targets.length
+                ? { from: lit.id, to: lit.targets, landed: lit.landed, onLand: (id) => setLit((l) => l && { ...l, landed: new Set(l.landed).add(id) }) }
+                : null
+            }
+          />
+          {CONSTELLATIONS.map(({ track, left, transform }) => (
             <div
-              key={t.id}
+              key={track.id}
               aria-hidden
               className={cn(
-                "pointer-events-none absolute select-none transition-opacity duration-500",
-                i % 2 ? "right-6 text-right" : "left-6",
-                i < 2 ? "top-[9%]" : "bottom-[3%]",
-                focus && focus !== t.id && "opacity-20",
+                "pointer-events-none absolute left-0 top-0 whitespace-nowrap transition-opacity duration-300",
+                !left && "text-right",
+                focus && focus !== track.id && "opacity-25",
               )}
+              style={{ transform }}
             >
-              <div className="font-display text-2xl font-bold opacity-80" style={{ color: `hsl(${t.hue})` }}>{t.constellation}</div>
-              <div className="text-xs text-muted-foreground">{t.name}</div>
-            </div>
-          ))}
-          {skills.map((s) => (
-            <SkillStar key={s.id} skill={s} dimmed={!!focus && focus !== s.track} onSelect={() => setSelectedId(s.id)} />
-          ))}
-        </div>
-      </div>
-
-      {/* Track focus */}
-      <div role="group" aria-label="Focus a track" className="glass-panel absolute bottom-20 left-1/2 z-40 flex -translate-x-1/2 gap-1 rounded-full p-1 sm:bottom-6 sm:left-6 sm:translate-x-0">
-        <FocusButton active={!focus} onClick={() => setFocus(null)}>All</FocusButton>
-        {tracks.map((t) => (
-          <FocusButton key={t.id} active={focus === t.id} onClick={() => setFocus(focus === t.id ? null : t.id)} hue={t.hue}>
-            {t.name}
-          </FocusButton>
-        ))}
-      </div>
-
-      {/* HUD */}
-      <Link
-        to="/dashboard"
-        className="glass-panel absolute bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full px-5 py-2.5 text-sm sm:left-auto sm:right-24 sm:translate-x-0"
-      >
-        <span className="font-display font-bold">Level {lvl.level}</span>
-        <span className="h-1.5 w-24 overflow-hidden rounded-full bg-muted" aria-label={`${lvl.toNext} XP to level ${lvl.level + 1}`}>
-          <span className="block h-full rounded-full bg-[hsl(var(--glow-completed))]" style={{ width: `${lvl.pct}%` }} />
-        </span>
-        <span className="text-muted-foreground">{masteredCount}/{skills.length} stars</span>
-        {stats.streak > 0 && (
-          <span className="flex items-center gap-1 text-[hsl(var(--glow-completed))]">
-            <Flame className="h-4 w-4" aria-hidden />{stats.streak}
-          </span>
-        )}
-      </Link>
-
-      {intro && (
-        <div className="absolute inset-0 z-[60] flex items-end bg-background/70 p-4 backdrop-blur-sm sm:items-center sm:p-12">
-          <div className="max-w-xl space-y-6">
-            <h1 className="text-5xl font-extrabold leading-[1.05] sm:text-6xl">Learn by lighting up a galaxy.</h1>
-            <p className="text-lg text-foreground/80">
-              Every star is a skill. Pass its skill check to light it up and unlock the stars it connects to.
-              Your progress saves as you go. No sign-up needed.
-            </p>
-            <div>
-              <p className="mb-3 text-sm text-muted-foreground">Where do you want to start?</p>
-              <div className="grid grid-cols-2 gap-2">
-                {tracks.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => closeIntro(t.id)}
-                    className="rounded-xl border bg-card/60 p-4 text-left transition-colors hover:border-[hsl(var(--track))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    style={{ ["--track" as string]: t.hue }}
-                  >
-                    <span className="block font-display text-lg font-bold" style={{ color: `hsl(${t.hue})` }}>{t.name}</span>
-                    <span className="text-sm text-muted-foreground">{t.blurb}</span>
-                  </button>
-                ))}
+              {/* Fades out when zoomed far out, where the names would crowd the stars. */}
+              <div style={{ opacity: "clamp(0, calc((var(--k) - 0.24) * 16), 1)" }}>
+                <div className="font-display text-2xl font-bold opacity-85" style={{ color: `hsl(${track.hue})` }}>{track.constellation}</div>
+                <div className="text-xs text-muted-foreground">{track.name}</div>
               </div>
             </div>
-            <Button variant="ghost" onClick={() => closeIntro(null)} className="px-0 text-muted-foreground hover:bg-transparent hover:text-foreground">
-              Show me the whole map
-            </Button>
-          </div>
+          ))}
+          {tracks.map((t) => (
+            <div key={t.id} role="group" aria-label={t.name} className="pointer-events-none absolute inset-0">
+              {display
+                .filter((s) => s.track === t.id)
+                .map((s) => (
+                  <SkillStar
+                    key={s.id}
+                    skill={s}
+                    dimmed={!!focus && focus !== s.track}
+                    ignite={lit?.phase === "ignite" && lit.id === s.id}
+                    appear={!!lit?.landed.has(s.id)}
+                    onSelect={() => {
+                      lastSelected.current = s.id;
+                      setSelectedId(s.id);
+                    }}
+                    onFocus={() => reveal(worldPos(s))}
+                  />
+                ))}
+            </div>
+          ))}
         </div>
-      )}
+        <p id="map-help" className="sr-only">
+          Drag to pan, scroll or pinch to zoom. With the map focused, arrow keys pan, plus and minus zoom, and 0 shows the whole galaxy.
+        </p>
+        <p aria-live="polite" className="sr-only">{announcement}</p>
 
-      <SkillPanel skill={selected} onClose={() => setSelectedId(null)} />
+        {/* Centred over the tutor button (bottom-right, 56px, 24px in). */}
+        <div ref={zoomRef} className="absolute bottom-[92px] right-[30px] z-40">
+          <ZoomControls onZoomIn={() => zoomBy(ZOOM_STEP)} onZoomOut={() => zoomBy(1 / ZOOM_STEP)} onFit={() => fit()} />
+        </div>
+
+        {/* Stays clear of the tutor button and wraps to two rows when narrow, so nothing overlaps. */}
+        <div ref={stackRef} className="pointer-events-none absolute bottom-6 left-4 right-24 z-40 flex flex-wrap items-center gap-2 sm:left-6 [&>*]:pointer-events-auto">
+          <TrackFocus value={focus} onChange={focusTrack} />
+          <Hud level={lvl.level} pct={lvl.pct} toNext={lvl.toNext} lit={skills.filter((s) => s.mastered).length} total={skills.length} streak={stats.streak} />
+        </div>
+      </main>
+
+      <IntroDialog
+        open={intro}
+        onChoose={closeIntro}
+        onCloseAutoFocus={(e) => {
+          e.preventDefault();
+          if (introFocus.current) focusStar(introFocus.current);
+          else viewportRef.current?.focus({ preventScroll: true });
+        }}
+      />
+
+      <SkillPanel
+        skill={selected}
+        onClose={() => setSelectedId(null)}
+        onCloseAutoFocus={(e) => {
+          e.preventDefault();
+          if (lastSelected.current) focusStar(lastSelected.current);
+        }}
+      />
     </div>
   );
 };
-
-const FocusButton = ({ active, hue, onClick, children }: { active: boolean; hue?: string; onClick: () => void; children: React.ReactNode }) => (
-  <button
-    onClick={onClick}
-    aria-pressed={active}
-    className={cn(
-      "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
-    )}
-    style={active && hue ? { background: `hsl(${hue})` } : undefined}
-  >
-    {children}
-  </button>
-);
 
 export default Index;
