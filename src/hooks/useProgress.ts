@@ -194,8 +194,11 @@ export const usePublicProfile = (username: string) => {
     queryKey: ["profile", username.toLowerCase()],
     enabled: !!user && !!username,
     queryFn: async () => {
-      // ilike for case-insensitive match; escape _ and %, which are wildcards (and _ is legal in names)
-      const pattern = username.replace(/[\\%_]/g, "\\$&");
+      // Only real usernames reach the query: PostgREST's ilike also treats * as a wildcard,
+      // so /u/a* would otherwise show whoever matches first.
+      if (!/^[A-Za-z0-9_-]{3,20}$/.test(username)) return null;
+      // ilike for case-insensitive match; _ is a wildcard but also legal in names
+      const pattern = username.replace(/_/g, "\\_");
       const { data: row, error } = await supabase.from("leaderboard").select("*").ilike("username", pattern).maybeSingle();
       if (error) throw error;
       if (!row?.user_id) return null;

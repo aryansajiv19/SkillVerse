@@ -27,11 +27,13 @@ select is((select best_streak from public.player_stats where user_id = '00000000
 select is((select streak from public.leaderboard where user_id = '00000000-0000-0000-0000-00000000000b'), 0, 'a missed day resets the visible streak');
 select is((select best_streak from public.player_stats where user_id = '00000000-0000-0000-0000-00000000000b'), 1, '…but best streak is kept');
 
+-- Ranks are compared to each other, not to 1-2-3, so players already in a dev database don't break the test.
 select results_eq(
-  $$ select username, rank from public.leaderboard where user_id::text like '00000000-%' order by rank, username $$,
-  $$ values ('cadet_' || substr(md5('00000000-0000-0000-0000-00000000000a'), 1, 10), 1),
-            ('cadet_' || substr(md5('00000000-0000-0000-0000-00000000000b'), 1, 10), 2),
-            ('cadet_' || substr(md5('00000000-0000-0000-0000-00000000000c'), 1, 10), 3) $$,
+  $$ select username, rank - 1 = (select count(*) from public.player_stats x where x.xp > l.xp)
+     from public.leaderboard l where user_id::text like '00000000-%' order by rank, username $$,
+  $$ values ('cadet_' || substr(md5('00000000-0000-0000-0000-00000000000a'), 1, 10), true),
+            ('cadet_' || substr(md5('00000000-0000-0000-0000-00000000000b'), 1, 10), true),
+            ('cadet_' || substr(md5('00000000-0000-0000-0000-00000000000c'), 1, 10), true) $$,
   'rank orders by XP');
 
 -- A bulk reset (one statement, many rows) refreshes the player once.
@@ -41,11 +43,13 @@ select is((select (xp, skills_mastered, challenges_done, streak) from public.pla
            where user_id = '00000000-0000-0000-0000-00000000000a'),
   row(0, 0, 0, 0), 'reset zeroes the stats');
 
--- Invariant: trigger-maintained rows equal a from-scratch recompute for everyone.
-create temp table snapshot as select user_id, xp, skills_mastered, challenges_done, streak, best_streak, last_active from public.player_stats;
-select private.refresh_stats(user_id) from public.player_stats;
+-- Invariant: trigger-maintained rows equal a from-scratch recompute.
+create temp table snapshot as select user_id, xp, skills_mastered, challenges_done, streak, best_streak, last_active
+  from public.player_stats where user_id::text like '00000000-%';
+select private.refresh_stats(user_id) from snapshot;
 select set_eq(
-  $$ select user_id, xp, skills_mastered, challenges_done, streak, best_streak, last_active from public.player_stats $$,
+  $$ select user_id, xp, skills_mastered, challenges_done, streak, best_streak, last_active from public.player_stats
+     where user_id::text like '00000000-%' $$,
   $$ select * from snapshot $$,
   'incremental stats match a full recompute');
 
