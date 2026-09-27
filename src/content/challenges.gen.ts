@@ -7,7 +7,7 @@ export const challenges: Challenge[] = [
     "id": "html-check",
     "skillId": "html",
     "type": "quiz",
-    "title": "HTML Skill Check",
+    "title": "HTML skill check",
     "description": "Pass this to master HTML and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -52,7 +52,7 @@ export const challenges: Challenge[] = [
     "skillId": "html",
     "type": "code",
     "lang": "html",
-    "title": "Your First Page",
+    "title": "Your first page",
     "description": "Build a page with a title, a heading and a paragraph.",
     "difficulty": "beginner",
     "xpReward": 50,
@@ -84,7 +84,7 @@ export const challenges: Challenge[] = [
     "id": "css-check",
     "skillId": "css",
     "type": "quiz",
-    "title": "CSS Skill Check",
+    "title": "CSS skill check",
     "description": "Pass this to master CSS and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -118,7 +118,7 @@ export const challenges: Challenge[] = [
     "skillId": "css",
     "type": "code",
     "lang": "css",
-    "title": "Center a Div",
+    "title": "Center a div",
     "description": "Center .container's children horizontally and vertically with flexbox.",
     "difficulty": "beginner",
     "xpReward": 50,
@@ -134,7 +134,8 @@ export const challenges: Challenge[] = [
         "selector": ".container",
         "prop": "display",
         "value": [
-          "flex"
+          "flex",
+          "inline-flex"
         ],
         "label": "display: flex"
       },
@@ -163,15 +164,15 @@ export const challenges: Challenge[] = [
     "skillId": "css",
     "type": "code",
     "lang": "css",
-    "title": "Three-Column Grid",
-    "description": "Make .grid a grid with three equal columns and a gap.",
+    "title": "Three-column grid",
+    "description": "Make .grid a grid with three equal columns and a gap between them.",
     "difficulty": "intermediate",
     "xpReward": 60,
     "starterCode": ".grid {\n  \n}\n",
     "hints": [
       "display: grid",
       "repeat(3, 1fr) makes three equal columns",
-      "gap sets spacing between cells"
+      "gap sets spacing between cells, and 0 doesn't count"
     ],
     "tests": [
       {
@@ -179,7 +180,8 @@ export const challenges: Challenge[] = [
         "selector": ".grid",
         "prop": "display",
         "value": [
-          "grid"
+          "grid",
+          "inline-grid"
         ],
         "label": "display: grid"
       },
@@ -189,18 +191,21 @@ export const challenges: Challenge[] = [
         "prop": "grid-template-columns",
         "value": [
           "repeat(3, 1fr)",
-          "1fr 1fr 1fr"
+          "1fr 1fr 1fr",
+          "repeat(3, minmax(0, 1fr))",
+          "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)"
         ],
         "label": "three equal columns"
       },
       {
         "lang": "css",
         "selector": ".grid",
-        "prop": "gap",
-        "value": [
-          "*"
+        "prop": [
+          "row-gap",
+          "column-gap"
         ],
-        "label": "has a gap"
+        "value": "non-zero",
+        "label": "a gap bigger than 0"
       }
     ]
   },
@@ -208,7 +213,7 @@ export const challenges: Challenge[] = [
     "id": "javascript-check",
     "skillId": "javascript",
     "type": "quiz",
-    "title": "JavaScript Skill Check",
+    "title": "JavaScript skill check",
     "description": "Pass this to master JavaScript and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -248,7 +253,7 @@ export const challenges: Challenge[] = [
     "skillId": "javascript",
     "type": "code",
     "lang": "js",
-    "title": "Create a Function",
+    "title": "Write a function",
     "description": "Write add(a, b) that returns the sum of two numbers.",
     "difficulty": "beginner",
     "xpReward": 50,
@@ -280,7 +285,7 @@ export const challenges: Challenge[] = [
     "skillId": "javascript",
     "type": "code",
     "lang": "js",
-    "title": "Reverse a String",
+    "title": "Reverse a string",
     "description": "Write reverse(str) that returns the string backwards.",
     "difficulty": "beginner",
     "xpReward": 50,
@@ -353,7 +358,7 @@ export const challenges: Challenge[] = [
     "type": "game",
     "gameType": "debugger",
     "title": "Planet Debugger",
-    "description": "Fix broken snippets against the clock to repair planets.",
+    "description": "Five planets, five classic JavaScript bugs. Fix each snippet so it prints the right output.",
     "difficulty": "intermediate",
     "xpReward": 100
   },
@@ -361,7 +366,7 @@ export const challenges: Challenge[] = [
     "id": "a11y-check",
     "skillId": "a11y",
     "type": "quiz",
-    "title": "Accessibility Skill Check",
+    "title": "Accessibility skill check",
     "description": "Pass this to master Accessibility and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -401,36 +406,37 @@ export const challenges: Challenge[] = [
     "skillId": "a11y",
     "type": "code",
     "lang": "html",
-    "title": "Accessible Sign-up Form",
-    "description": "Build a form where every input has a label, the image has alt text, and there's a real submit button.",
+    "title": "Accessible sign-up form",
+    "description": "Fix this form for screen reader and keyboard users: describe the logo in alt text, give every input a label, and replace the clickable div with a real submit button.",
     "difficulty": "intermediate",
     "xpReward": 60,
     "starterCode": "<form>\n  <img src=\"logo.png\">\n  <input type=\"email\">\n  <div onclick=\"submit()\">Sign up</div>\n</form>\n",
     "hints": [
-      "Give the input an id and add <label for=\"that-id\">",
-      "Every <img> needs an alt attribute",
-      "Replace the div with <button type=\"submit\">"
+      "The logo carries meaning, so describe it: alt=\"SkillVerse\"",
+      "Label the input with <label for=\"email\">Email</label> plus id=\"email\", or wrap the input inside the <label>",
+      "A <button> inside a form submits it by default, and it works with the keyboard for free",
+      "Delete the div once the button replaces it"
     ],
     "tests": [
       {
         "lang": "html",
-        "selector": "img[alt]",
-        "label": "image has alt text"
+        "check": "img-alt",
+        "label": "the logo has alt text"
       },
       {
         "lang": "html",
-        "selector": "input[id]",
-        "label": "input has an id"
+        "check": "labelled-controls",
+        "label": "every input has a label"
       },
       {
         "lang": "html",
-        "selector": "label[for]",
-        "label": "a <label for=…> exists"
+        "check": "submit-button",
+        "label": "the form has a submit button with text"
       },
       {
         "lang": "html",
-        "selector": "button[type=\"submit\"]",
-        "label": "uses <button type=\"submit\">"
+        "check": "no-click-handlers",
+        "label": "no clickable div left over"
       }
     ]
   },
@@ -438,7 +444,7 @@ export const challenges: Challenge[] = [
     "id": "tailwind-check",
     "skillId": "tailwind",
     "type": "quiz",
-    "title": "Tailwind Skill Check",
+    "title": "Tailwind skill check",
     "description": "Pass this to master Tailwind and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -471,7 +477,7 @@ export const challenges: Challenge[] = [
     "id": "typescript-check",
     "skillId": "typescript",
     "type": "quiz",
-    "title": "TypeScript Skill Check",
+    "title": "TypeScript skill check",
     "description": "Pass this to master TypeScript and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -507,10 +513,47 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "typescript-1",
+    "skillId": "typescript",
+    "type": "code",
+    "lang": "js",
+    "title": "Guard against bad data",
+    "description": "Types vanish at runtime, so JSON from an API needs a real check. Write isUser(value), the body of a `value is User` type guard: true only for objects with a string name and a number age.",
+    "difficulty": "beginner",
+    "xpReward": 50,
+    "starterCode": "// type User = { name: string; age: number }\n// In TypeScript: function isUser(value: unknown): value is User\n// The editor runs plain JavaScript, so leave out the type annotations.\nfunction isUser(value) {\n  \n}\n",
+    "hints": [
+      "typeof value === 'object' is true for null too, so rule null out",
+      "Then check typeof value.name and typeof value.age"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "isUser({ name: 'Ada', age: 36 })",
+        "expected": true
+      },
+      {
+        "lang": "js",
+        "expr": "isUser({ name: 'Ada' })",
+        "expected": false
+      },
+      {
+        "lang": "js",
+        "expr": "isUser({ name: 'Ada', age: '36' })",
+        "expected": false
+      },
+      {
+        "lang": "js",
+        "expr": "isUser(null)",
+        "expected": false
+      }
+    ]
+  },
+  {
     "id": "react-check",
     "skillId": "react",
     "type": "quiz",
-    "title": "React Skill Check",
+    "title": "React skill check",
     "description": "Pass this to master React and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -540,10 +583,84 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "react-1",
+    "skillId": "react",
+    "type": "code",
+    "lang": "js",
+    "title": "A reducer for a to-do list",
+    "description": "Write todosReducer(todos, action) for useReducer. Handle 'added' ({ id, text }, new items start with done: false), 'toggled' ({ id }) and 'deleted' ({ id }). Return new arrays and objects instead of changing the old ones, and return todos unchanged for any other action.",
+    "difficulty": "intermediate",
+    "xpReward": 60,
+    "starterCode": "// todos: [{ id, text, done }]\nfunction todosReducer(todos, action) {\n  switch (action.type) {\n    // handle 'added', 'toggled' and 'deleted' here\n    default:\n      return todos;\n  }\n}\n",
+    "hints": [
+      "Adding: return [...todos, newTodo] instead of calling push",
+      "Toggling: map over todos and copy the one that matches with { ...t, done: !t.done }",
+      "Deleting: filter keeps every todo whose id doesn't match"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "todosReducer([], { type: 'added', id: 1, text: 'Learn React' })",
+        "expected": [
+          {
+            "id": 1,
+            "text": "Learn React",
+            "done": false
+          }
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "todosReducer([{ id: 1, text: 'a', done: false }, { id: 2, text: 'b', done: false }], { type: 'toggled', id: 2 })",
+        "expected": [
+          {
+            "id": 1,
+            "text": "a",
+            "done": false
+          },
+          {
+            "id": 2,
+            "text": "b",
+            "done": true
+          }
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "todosReducer([{ id: 1, text: 'a', done: false }, { id: 2, text: 'b', done: true }], { type: 'deleted', id: 1 })",
+        "expected": [
+          {
+            "id": 2,
+            "text": "b",
+            "done": true
+          }
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "(() => { const todos = [{ id: 1, text: 'a', done: false }]; todosReducer(todos, { type: 'toggled', id: 1 }); todosReducer(todos, { type: 'added', id: 2, text: 'b' }); return todos; })()",
+        "expected": [
+          {
+            "id": 1,
+            "text": "a",
+            "done": false
+          }
+        ],
+        "label": "leaves the old todos untouched after toggling and adding"
+      },
+      {
+        "lang": "js",
+        "expr": "(() => { const todos = []; return todosReducer(todos, { type: 'renamed' }) === todos; })()",
+        "expected": true,
+        "label": "returns the same array for an unknown action"
+      }
+    ]
+  },
+  {
     "id": "nextjs-check",
     "skillId": "nextjs",
     "type": "quiz",
-    "title": "Next.js Skill Check",
+    "title": "Next.js skill check",
     "description": "Pass this to master Next.js and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -582,7 +699,7 @@ export const challenges: Challenge[] = [
     "id": "nodejs-check",
     "skillId": "nodejs",
     "type": "quiz",
-    "title": "Node.js Skill Check",
+    "title": "Node.js skill check",
     "description": "Pass this to master Node.js and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -616,7 +733,7 @@ export const challenges: Challenge[] = [
     "skillId": "nodejs",
     "type": "code",
     "lang": "js",
-    "title": "Parse a Query String",
+    "title": "Parse a query string",
     "description": "Write parseQuery(qs) turning 'a=1&b=two' into { a: '1', b: 'two' }. Decode percent-escapes like %20, and return {} for an empty string.",
     "difficulty": "beginner",
     "xpReward": 50,
@@ -652,7 +769,7 @@ export const challenges: Challenge[] = [
     "id": "express-check",
     "skillId": "express",
     "type": "quiz",
-    "title": "Express Skill Check",
+    "title": "Express skill check",
     "description": "Pass this to master Express and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -692,7 +809,7 @@ export const challenges: Challenge[] = [
     "skillId": "express",
     "type": "code",
     "lang": "js",
-    "title": "Route Matcher",
+    "title": "Match a route",
     "description": "Write matchRoute(pattern, path): return an object of params if it matches, otherwise null. matchRoute('/users/:id', '/users/42') → { id: '42' }.",
     "difficulty": "intermediate",
     "xpReward": 60,
@@ -734,7 +851,7 @@ export const challenges: Challenge[] = [
     "id": "rest-apis-check",
     "skillId": "rest-apis",
     "type": "quiz",
-    "title": "REST APIs Skill Check",
+    "title": "REST APIs skill check",
     "description": "Pass this to master REST APIs and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -770,10 +887,73 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "rest-apis-1",
+    "skillId": "rest-apis",
+    "type": "code",
+    "lang": "js",
+    "title": "Paginate a collection",
+    "description": "Write paginate(items, page, perPage) for a GET /items?page=2 endpoint. page starts at 1. Return { data, page, totalPages, nextPage }, where nextPage is null on the last page or past the end.",
+    "difficulty": "beginner",
+    "xpReward": 50,
+    "starterCode": "function paginate(items, page, perPage) {\n  \n}\n",
+    "hints": [
+      "Page 1 starts at index 0, so the start index is (page - 1) * perPage",
+      "totalPages is Math.ceil(items.length / perPage)",
+      "slice never throws on a range past the end, it just returns []"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "paginate([1, 2, 3, 4, 5], 1, 2)",
+        "expected": {
+          "data": [
+            1,
+            2
+          ],
+          "page": 1,
+          "totalPages": 3,
+          "nextPage": 2
+        }
+      },
+      {
+        "lang": "js",
+        "expr": "paginate([1, 2, 3, 4, 5], 3, 2)",
+        "expected": {
+          "data": [
+            5
+          ],
+          "page": 3,
+          "totalPages": 3,
+          "nextPage": null
+        }
+      },
+      {
+        "lang": "js",
+        "expr": "paginate([1, 2, 3], 5, 2)",
+        "expected": {
+          "data": [],
+          "page": 5,
+          "totalPages": 2,
+          "nextPage": null
+        }
+      },
+      {
+        "lang": "js",
+        "expr": "paginate([], 1, 10)",
+        "expected": {
+          "data": [],
+          "page": 1,
+          "totalPages": 0,
+          "nextPage": null
+        }
+      }
+    ]
+  },
+  {
     "id": "sql-check",
     "skillId": "sql",
     "type": "quiz",
-    "title": "SQL Skill Check",
+    "title": "SQL skill check",
     "description": "Pass this to master SQL and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -806,7 +986,7 @@ export const challenges: Challenge[] = [
     "id": "postgres-check",
     "skillId": "postgres",
     "type": "quiz",
-    "title": "PostgreSQL Skill Check",
+    "title": "PostgreSQL skill check",
     "description": "Pass this to master PostgreSQL and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -845,7 +1025,7 @@ export const challenges: Challenge[] = [
     "id": "auth-check",
     "skillId": "auth",
     "type": "quiz",
-    "title": "Auth Skill Check",
+    "title": "Auth skill check",
     "description": "Pass this to master Auth and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -885,7 +1065,7 @@ export const challenges: Challenge[] = [
     "skillId": "auth",
     "type": "code",
     "lang": "js",
-    "title": "Token Expiry",
+    "title": "Check token expiry",
     "description": "Write isExpired(payload, nowMs). JWT `exp` is in seconds; nowMs is milliseconds. Expired when now ≥ exp.",
     "difficulty": "beginner",
     "xpReward": 50,
@@ -916,7 +1096,7 @@ export const challenges: Challenge[] = [
     "id": "fastapi-check",
     "skillId": "fastapi",
     "type": "quiz",
-    "title": "FastAPI Skill Check",
+    "title": "FastAPI skill check",
     "description": "Pass this to master FastAPI and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -949,7 +1129,7 @@ export const challenges: Challenge[] = [
     "id": "python-check",
     "skillId": "python",
     "type": "quiz",
-    "title": "Python Skill Check",
+    "title": "Python skill check",
     "description": "Pass this to master Python and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -988,7 +1168,7 @@ export const challenges: Challenge[] = [
     "id": "pandas-check",
     "skillId": "pandas",
     "type": "quiz",
-    "title": "pandas Skill Check",
+    "title": "pandas skill check",
     "description": "Pass this to master pandas and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1028,7 +1208,7 @@ export const challenges: Challenge[] = [
     "skillId": "pandas",
     "type": "code",
     "lang": "js",
-    "title": "Group By, by Hand",
+    "title": "Group by, by hand",
     "description": "Write groupMean(rows, key, field) returning { [group]: mean } — what df.groupby(key)[field].mean() does.",
     "difficulty": "intermediate",
     "xpReward": 60,
@@ -1050,6 +1230,14 @@ export const challenges: Challenge[] = [
         "lang": "js",
         "expr": "groupMean([], 'd', 's')",
         "expected": {}
+      },
+      {
+        "lang": "js",
+        "expr": "groupMean([{d:'x',s:1},{d:'y',s:2},{d:'x',s:4}], 'd', 's')",
+        "expected": {
+          "x": 2.5,
+          "y": 2
+        }
       }
     ]
   },
@@ -1057,7 +1245,7 @@ export const challenges: Challenge[] = [
     "id": "data-viz-check",
     "skillId": "data-viz",
     "type": "quiz",
-    "title": "Data Viz Skill Check",
+    "title": "Data Viz skill check",
     "description": "Pass this to master Data Viz and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1093,10 +1281,64 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "data-viz-1",
+    "skillId": "data-viz",
+    "type": "code",
+    "lang": "js",
+    "title": "Bin values for a histogram",
+    "description": "Write histogram(values, min, max, bins): split [min, max] into equal-width bins and count the values in each. A value equal to max goes in the last bin, and values outside the range are ignored.",
+    "difficulty": "intermediate",
+    "xpReward": 60,
+    "starterCode": "function histogram(values, min, max, bins) {\n  const counts = new Array(bins).fill(0);\n  \n  return counts;\n}\n",
+    "hints": [
+      "Each bin is (max - min) / bins wide",
+      "Math.floor((v - min) / width) gives the bin index",
+      "v === max gives index bins, one past the end, so clamp it"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "histogram([1, 2, 2, 3, 9], 0, 10, 5)",
+        "expected": [
+          1,
+          3,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "histogram([0, 10], 0, 10, 2)",
+        "expected": [
+          1,
+          1
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "histogram([-1, 5, 11], 0, 10, 2)",
+        "expected": [
+          0,
+          1
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "histogram([], 0, 1, 3)",
+        "expected": [
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  {
     "id": "ml-basics-check",
     "skillId": "ml-basics",
     "type": "quiz",
-    "title": "ML Basics Skill Check",
+    "title": "ML Basics skill check",
     "description": "Pass this to master ML Basics and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1132,10 +1374,49 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "ml-basics-1",
+    "skillId": "ml-basics",
+    "type": "code",
+    "lang": "js",
+    "title": "Mean squared error",
+    "description": "Write mse(actual, predicted), the average of the squared differences, the usual loss for regression. Throw an Error if the arrays have different lengths.",
+    "difficulty": "beginner",
+    "xpReward": 50,
+    "starterCode": "function mse(actual, predicted) {\n  \n}\n",
+    "hints": [
+      "Square each difference: (actual[i] - predicted[i]) ** 2",
+      "Sum them, then divide by the number of values",
+      "throw new Error('...') stops early when the lengths differ"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "mse([1, 2, 3], [1, 2, 3])",
+        "expected": 0
+      },
+      {
+        "lang": "js",
+        "expr": "mse([2, 4], [1, 7])",
+        "expected": 5
+      },
+      {
+        "lang": "js",
+        "expr": "+mse([1, 2, 3], [2, 2, 4]).toFixed(4)",
+        "expected": 0.6667
+      },
+      {
+        "lang": "js",
+        "expr": "(() => { try { mse([1, 2], [1]); return 'no error'; } catch { return 'threw'; } })()",
+        "expected": "threw",
+        "label": "throws when the lengths differ"
+      }
+    ]
+  },
+  {
     "id": "deep-learning-check",
     "skillId": "deep-learning",
     "type": "quiz",
-    "title": "Deep Learning Skill Check",
+    "title": "Deep Learning skill check",
     "description": "Pass this to master Deep Learning and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1165,10 +1446,60 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "deep-learning-1",
+    "skillId": "deep-learning",
+    "type": "code",
+    "lang": "js",
+    "title": "Softmax",
+    "description": "Write softmax(logits), turning a model's raw scores into probabilities that sum to 1. It must stay accurate for large scores like 1000, where Math.exp overflows to Infinity.",
+    "difficulty": "intermediate",
+    "xpReward": 60,
+    "starterCode": "function softmax(logits) {\n  \n}\n",
+    "hints": [
+      "softmax(x)[i] = Math.exp(x[i]) / the sum of Math.exp over every x",
+      "Subtracting the same number from every logit doesn't change the result",
+      "So subtract Math.max(...logits) first, and the biggest exponent becomes Math.exp(0) = 1"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "softmax([0, 0]).map((p) => +p.toFixed(4))",
+        "expected": [
+          0.5,
+          0.5
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "softmax([1, 2, 3]).map((p) => +p.toFixed(4))",
+        "expected": [
+          0.09,
+          0.2447,
+          0.6652
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "softmax([1000, 1000]).map((p) => +p.toFixed(4))",
+        "expected": [
+          0.5,
+          0.5
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "softmax([5])",
+        "expected": [
+          1
+        ]
+      }
+    ]
+  },
+  {
     "id": "llm-apps-check",
     "skillId": "llm-apps",
     "type": "quiz",
-    "title": "LLM Apps Skill Check",
+    "title": "LLM Apps skill check",
     "description": "Pass this to master LLM Apps and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1204,10 +1535,58 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "llm-apps-1",
+    "skillId": "llm-apps",
+    "type": "code",
+    "lang": "js",
+    "title": "Chunk text for retrieval",
+    "description": "RAG pipelines split documents into overlapping chunks before embedding them. Write chunk(text, size, overlap): each chunk is at most size characters and starts size - overlap after the previous one. Stop once a chunk reaches the end of the text. Assume 0 ≤ overlap < size.",
+    "difficulty": "intermediate",
+    "xpReward": 60,
+    "starterCode": "function chunk(text, size, overlap) {\n  const chunks = [];\n  \n  return chunks;\n}\n",
+    "hints": [
+      "Move the start forward by size - overlap each time",
+      "text.slice(start, start + size) is safe past the end of the string",
+      "Break out of the loop when start + size reaches text.length, or you'll add a chunk that's already covered"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "chunk('abcdefghij', 4, 1)",
+        "expected": [
+          "abcd",
+          "defg",
+          "ghij"
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "chunk('abcdef', 2, 0)",
+        "expected": [
+          "ab",
+          "cd",
+          "ef"
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "chunk('abc', 10, 2)",
+        "expected": [
+          "abc"
+        ]
+      },
+      {
+        "lang": "js",
+        "expr": "chunk('', 4, 1)",
+        "expected": []
+      }
+    ]
+  },
+  {
     "id": "git-check",
     "skillId": "git",
     "type": "quiz",
-    "title": "Git Skill Check",
+    "title": "Git skill check",
     "description": "Pass this to master Git and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1240,7 +1619,7 @@ export const challenges: Challenge[] = [
     "id": "linux-check",
     "skillId": "linux",
     "type": "quiz",
-    "title": "Linux Skill Check",
+    "title": "Linux skill check",
     "description": "Pass this to master Linux and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1270,10 +1649,47 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "linux-1",
+    "skillId": "linux",
+    "type": "code",
+    "lang": "js",
+    "title": "Read a permission mode",
+    "description": "Write toSymbolic(mode), turning an octal mode like '755' into the string ls -l shows: 'rwxr-xr-x'. The digits are owner, group and others, and each is a sum of 4 (read), 2 (write) and 1 (execute).",
+    "difficulty": "beginner",
+    "xpReward": 50,
+    "starterCode": "function toSymbolic(mode) {\n  \n}\n",
+    "hints": [
+      "Handle one digit at a time: [...mode] splits the string",
+      "digit & 4 is non-zero when the read bit is set. Same for & 2 and & 1"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "toSymbolic('755')",
+        "expected": "rwxr-xr-x"
+      },
+      {
+        "lang": "js",
+        "expr": "toSymbolic('644')",
+        "expected": "rw-r--r--"
+      },
+      {
+        "lang": "js",
+        "expr": "toSymbolic('600')",
+        "expected": "rw-------"
+      },
+      {
+        "lang": "js",
+        "expr": "toSymbolic('000')",
+        "expected": "---------"
+      }
+    ]
+  },
+  {
     "id": "docker-check",
     "skillId": "docker",
     "type": "quiz",
-    "title": "Docker Skill Check",
+    "title": "Docker skill check",
     "description": "Pass this to master Docker and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1312,7 +1728,7 @@ export const challenges: Challenge[] = [
     "id": "ci-cd-check",
     "skillId": "ci-cd",
     "type": "quiz",
-    "title": "CI/CD Skill Check",
+    "title": "CI/CD skill check",
     "description": "Pass this to master CI/CD and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1348,10 +1764,48 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "ci-cd-1",
+    "skillId": "ci-cd",
+    "type": "code",
+    "lang": "js",
+    "title": "Bump a version",
+    "description": "Release pipelines bump the version before tagging. Write bump(version, part) for semantic versions: part is 'major', 'minor' or 'patch', and every number after the bumped one resets to 0.",
+    "difficulty": "beginner",
+    "xpReward": 50,
+    "starterCode": "function bump(version, part) {\n  \n}\n",
+    "hints": [
+      "version.split('.').map(Number) gives three numbers",
+      "Strings concatenate: '9' + 1 is '91', not 10",
+      "Bumping minor resets patch. Bumping major resets both"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "bump('1.4.2', 'patch')",
+        "expected": "1.4.3"
+      },
+      {
+        "lang": "js",
+        "expr": "bump('1.4.2', 'minor')",
+        "expected": "1.5.0"
+      },
+      {
+        "lang": "js",
+        "expr": "bump('1.4.2', 'major')",
+        "expected": "2.0.0"
+      },
+      {
+        "lang": "js",
+        "expr": "bump('0.9.9', 'minor')",
+        "expected": "0.10.0"
+      }
+    ]
+  },
+  {
     "id": "kubernetes-check",
     "skillId": "kubernetes",
     "type": "quiz",
-    "title": "Kubernetes Skill Check",
+    "title": "Kubernetes skill check",
     "description": "Pass this to master Kubernetes and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1390,7 +1844,7 @@ export const challenges: Challenge[] = [
     "id": "cloud-check",
     "skillId": "cloud",
     "type": "quiz",
-    "title": "Cloud Skill Check",
+    "title": "Cloud skill check",
     "description": "Pass this to master Cloud and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,
@@ -1426,10 +1880,53 @@ export const challenges: Challenge[] = [
     ]
   },
   {
+    "id": "cloud-1",
+    "skillId": "cloud",
+    "type": "code",
+    "lang": "js",
+    "title": "Evaluate an access policy",
+    "description": "Write isAllowed(policy, action, resource) the way cloud IAM does: a request is denied unless a statement allows it, and any matching Deny wins over every Allow. A pattern ending in * matches anything that starts with the rest of it.",
+    "difficulty": "intermediate",
+    "xpReward": 60,
+    "starterCode": "// policy: [{ effect: 'Allow' | 'Deny', actions: ['s3:GetObject'], resources: ['photos/*'] }]\nfunction isAllowed(policy, action, resource) {\n  \n}\n",
+    "hints": [
+      "Write matches(pattern, value) first: 'photos/*' matches anything starting with 'photos/'",
+      "A statement applies when one of its actions and one of its resources match",
+      "Allowed = some applying statement is an Allow, and none is a Deny"
+    ],
+    "tests": [
+      {
+        "lang": "js",
+        "expr": "isAllowed([{ effect: 'Allow', actions: ['s3:GetObject'], resources: ['photos/*'] }], 's3:GetObject', 'photos/cat.png')",
+        "expected": true
+      },
+      {
+        "lang": "js",
+        "expr": "isAllowed([{ effect: 'Allow', actions: ['s3:GetObject'], resources: ['photos/*'] }], 's3:DeleteObject', 'photos/cat.png')",
+        "expected": false
+      },
+      {
+        "lang": "js",
+        "expr": "isAllowed([{ effect: 'Allow', actions: ['s3:GetObject'], resources: ['photos/*'] }], 's3:GetObject', 'secrets/key.pem')",
+        "expected": false
+      },
+      {
+        "lang": "js",
+        "expr": "isAllowed([{ effect: 'Allow', actions: ['s3:*'], resources: ['*'] }, { effect: 'Deny', actions: ['s3:DeleteObject'], resources: ['*'] }], 's3:DeleteObject', 'photos/cat.png')",
+        "expected": false
+      },
+      {
+        "lang": "js",
+        "expr": "isAllowed([{ effect: 'Allow', actions: ['s3:*'], resources: ['*'] }, { effect: 'Deny', actions: ['s3:DeleteObject'], resources: ['*'] }], 's3:PutObject', 'photos/cat.png')",
+        "expected": true
+      }
+    ]
+  },
+  {
     "id": "iac-check",
     "skillId": "iac",
     "type": "quiz",
-    "title": "Terraform Skill Check",
+    "title": "Terraform skill check",
     "description": "Pass this to master Terraform and light up its star.",
     "difficulty": "beginner",
     "xpReward": 30,

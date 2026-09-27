@@ -4,7 +4,7 @@
 // shuffles them. `npm run db:catalog` generates the public catalog for the browser
 // (no answers) and the private answer key for Postgres.
 
-import type { CodeChallenge, CodeTest, GameChallenge, QuizChallenge, Question } from "../src/content/types.ts";
+import type { CodeChallenge, CodeTest, GameChallenge, HtmlCheck, QuizChallenge, Question } from "../src/content/types.ts";
 import { checkIdFor } from "../src/content/types.ts";
 
 export { checkIdFor };
@@ -35,16 +35,17 @@ const check = (skillId: string, name: string, questions: AuthoredQuestion[]): Au
   id: checkIdFor(skillId),
   skillId,
   type: "quiz",
-  title: `${name} Skill Check`,
+  title: `${name} skill check`,
   description: `Pass this to master ${name} and light up its star.`,
   difficulty: "beginner",
   xpReward: 30,
   questions,
 });
 
-const js = (expr: string, expected: unknown): CodeTest => ({ lang: "js", expr, expected });
+const js = (expr: string, expected: unknown, label?: string): CodeTest => ({ lang: "js", expr, expected, label });
 const el = (selector: string, label: string): CodeTest => ({ lang: "html", selector, label });
-const rule = (selector: string, prop: string, value: string[], label: string): CodeTest =>
+const html = (check: HtmlCheck, label: string): CodeTest => ({ lang: "html", check, label });
+const rule = (selector: string, prop: string | string[], value: string[] | "non-zero", label: string): CodeTest =>
   ({ lang: "css", selector, prop, value, label });
 
 export const challenges: AuthoredChallenge[] = [
@@ -62,7 +63,7 @@ export const challenges: AuthoredChallenge[] = [
   ]),
   {
     id: "html-1", skillId: "html", type: "code", lang: "html",
-    title: "Your First Page", description: "Build a page with a title, a heading and a paragraph.",
+    title: "Your first page", description: "Build a page with a title, a heading and a paragraph.",
     difficulty: "beginner", xpReward: 50,
     starterCode: "<!DOCTYPE html>\n<html>\n  <!-- add a head with a title, and a body -->\n</html>\n",
     hints: ["Put a <title> inside <head>", "Use <h1> for the heading and <p> for the paragraph", "Both go inside <body>"],
@@ -77,26 +78,26 @@ export const challenges: AuthoredChallenge[] = [
   ]),
   {
     id: "css-1", skillId: "css", type: "code", lang: "css",
-    title: "Center a Div", description: "Center .container's children horizontally and vertically with flexbox.",
+    title: "Center a div", description: "Center .container's children horizontally and vertically with flexbox.",
     difficulty: "beginner", xpReward: 50,
     starterCode: ".container {\n  /* your CSS here */\n}\n",
     hints: ["Start with display: flex", "justify-content handles the main axis", "align-items handles the cross axis"],
     tests: [
-      rule(".container", "display", ["flex"], "display: flex"),
+      rule(".container", "display", ["flex", "inline-flex"], "display: flex"),
       rule(".container", "justify-content", ["center"], "justify-content: center"),
       rule(".container", "align-items", ["center"], "align-items: center"),
     ],
   },
   {
     id: "css-2", skillId: "css", type: "code", lang: "css",
-    title: "Three-Column Grid", description: "Make .grid a grid with three equal columns and a gap.",
+    title: "Three-column grid", description: "Make .grid a grid with three equal columns and a gap between them.",
     difficulty: "intermediate", xpReward: 60,
     starterCode: ".grid {\n  \n}\n",
-    hints: ["display: grid", "repeat(3, 1fr) makes three equal columns", "gap sets spacing between cells"],
+    hints: ["display: grid", "repeat(3, 1fr) makes three equal columns", "gap sets spacing between cells, and 0 doesn't count"],
     tests: [
-      rule(".grid", "display", ["grid"], "display: grid"),
-      rule(".grid", "grid-template-columns", ["repeat(3, 1fr)", "1fr 1fr 1fr"], "three equal columns"),
-      rule(".grid", "gap", ["*"], "has a gap"),
+      rule(".grid", "display", ["grid", "inline-grid"], "display: grid"),
+      rule(".grid", "grid-template-columns", ["repeat(3, 1fr)", "1fr 1fr 1fr", "repeat(3, minmax(0, 1fr))", "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)"], "three equal columns"),
+      rule(".grid", ["row-gap", "column-gap"], "non-zero", "a gap bigger than 0"),
     ],
   },
 
@@ -109,7 +110,7 @@ export const challenges: AuthoredChallenge[] = [
   ]),
   {
     id: "js-1", skillId: "javascript", type: "code", lang: "js",
-    title: "Create a Function", description: "Write add(a, b) that returns the sum of two numbers.",
+    title: "Write a function", description: "Write add(a, b) that returns the sum of two numbers.",
     difficulty: "beginner", xpReward: 50,
     starterCode: "function add(a, b) {\n  // your code here\n}\n",
     hints: ["Use the return keyword", "Return a + b"],
@@ -117,7 +118,7 @@ export const challenges: AuthoredChallenge[] = [
   },
   {
     id: "js-2", skillId: "javascript", type: "code", lang: "js",
-    title: "Reverse a String", description: "Write reverse(str) that returns the string backwards.",
+    title: "Reverse a string", description: "Write reverse(str) that returns the string backwards.",
     difficulty: "beginner", xpReward: 50,
     starterCode: "function reverse(str) {\n  \n}\n",
     hints: ["Strings can be split into arrays", "Arrays have a reverse() method", "join('') turns an array back into a string"],
@@ -133,7 +134,7 @@ export const challenges: AuthoredChallenge[] = [
   },
   {
     id: "js-game-1", skillId: "javascript", type: "game", gameType: "debugger",
-    title: "Planet Debugger", description: "Fix broken snippets against the clock to repair planets.",
+    title: "Planet Debugger", description: "Five planets, five classic JavaScript bugs. Fix each snippet so it prints the right output.",
     difficulty: "intermediate", xpReward: 100,
   },
 
@@ -146,15 +147,21 @@ export const challenges: AuthoredChallenge[] = [
   ]),
   {
     id: "a11y-1", skillId: "a11y", type: "code", lang: "html",
-    title: "Accessible Sign-up Form", description: "Build a form where every input has a label, the image has alt text, and there's a real submit button.",
+    title: "Accessible sign-up form",
+    description: "Fix this form for screen reader and keyboard users: describe the logo in alt text, give every input a label, and replace the clickable div with a real submit button.",
     difficulty: "intermediate", xpReward: 60,
     starterCode: '<form>\n  <img src="logo.png">\n  <input type="email">\n  <div onclick="submit()">Sign up</div>\n</form>\n',
-    hints: ['Give the input an id and add <label for="that-id">', "Every <img> needs an alt attribute", 'Replace the div with <button type="submit">'],
+    hints: [
+      'The logo carries meaning, so describe it: alt="SkillVerse"',
+      'Label the input with <label for="email">Email</label> plus id="email", or wrap the input inside the <label>',
+      "A <button> inside a form submits it by default, and it works with the keyboard for free",
+      "Delete the div once the button replaces it",
+    ],
     tests: [
-      el("img[alt]", "image has alt text"),
-      el("input[id]", "input has an id"),
-      el("label[for]", "a <label for=…> exists"),
-      el('button[type="submit"]', 'uses <button type="submit">'),
+      html("img-alt", "the logo has alt text"),
+      html("labelled-controls", "every input has a label"),
+      html("submit-button", "the form has a submit button with text"),
+      html("no-click-handlers", "no clickable div left over"),
     ],
   },
 
@@ -173,12 +180,49 @@ export const challenges: AuthoredChallenge[] = [
       "typeof guards narrow primitives. `as` just asserts. It doesn't check."),
   ]),
 
+  {
+    id: "typescript-1", skillId: "typescript", type: "code", lang: "js",
+    title: "Guard against bad data",
+    description: "Types vanish at runtime, so JSON from an API needs a real check. Write isUser(value), the body of a `value is User` type guard: true only for objects with a string name and a number age.",
+    difficulty: "beginner", xpReward: 50,
+    starterCode: "// type User = { name: string; age: number }\n// In TypeScript: function isUser(value: unknown): value is User\n// The editor runs plain JavaScript, so leave out the type annotations.\nfunction isUser(value) {\n  \n}\n",
+    hints: ["typeof value === 'object' is true for null too, so rule null out", "Then check typeof value.name and typeof value.age"],
+    tests: [
+      js("isUser({ name: 'Ada', age: 36 })", true),
+      js("isUser({ name: 'Ada' })", false),
+      js("isUser({ name: 'Ada', age: '36' })", false),
+      js("isUser(null)", false),
+    ],
+  },
+
   check("react", "React", [
     mc("Which hook runs side effects after render?", ["useEffect", "useMemo", "useRef", "useState"], 0, "useEffect runs after the render is committed."),
     tf("To add an item, call items.push(x) and then setItems(items).", false,
       "Same array reference means React may skip the re-render. Create a new array: setItems([...items, x])."),
     fill("Items rendered with .map() need a unique ___ prop.", "key", "Keys let React match items between renders."),
   ]),
+
+  {
+    id: "react-1", skillId: "react", type: "code", lang: "js",
+    title: "A reducer for a to-do list",
+    description: "Write todosReducer(todos, action) for useReducer. Handle 'added' ({ id, text }, new items start with done: false), 'toggled' ({ id }) and 'deleted' ({ id }). Return new arrays and objects instead of changing the old ones, and return todos unchanged for any other action.",
+    difficulty: "intermediate", xpReward: 60,
+    starterCode: "// todos: [{ id, text, done }]\nfunction todosReducer(todos, action) {\n  switch (action.type) {\n    // handle 'added', 'toggled' and 'deleted' here\n    default:\n      return todos;\n  }\n}\n",
+    hints: [
+      "Adding: return [...todos, newTodo] instead of calling push",
+      "Toggling: map over todos and copy the one that matches with { ...t, done: !t.done }",
+      "Deleting: filter keeps every todo whose id doesn't match",
+    ],
+    tests: [
+      js("todosReducer([], { type: 'added', id: 1, text: 'Learn React' })", [{ id: 1, text: "Learn React", done: false }]),
+      js("todosReducer([{ id: 1, text: 'a', done: false }, { id: 2, text: 'b', done: false }], { type: 'toggled', id: 2 })",
+        [{ id: 1, text: "a", done: false }, { id: 2, text: "b", done: true }]),
+      js("todosReducer([{ id: 1, text: 'a', done: false }, { id: 2, text: 'b', done: true }], { type: 'deleted', id: 1 })", [{ id: 2, text: "b", done: true }]),
+      js("(() => { const todos = [{ id: 1, text: 'a', done: false }]; todosReducer(todos, { type: 'toggled', id: 1 }); todosReducer(todos, { type: 'added', id: 2, text: 'b' }); return todos; })()",
+        [{ id: 1, text: "a", done: false }], "leaves the old todos untouched after toggling and adding"),
+      js("(() => { const todos = []; return todosReducer(todos, { type: 'renamed' }) === todos; })()", true, "returns the same array for an unknown action"),
+    ],
+  },
 
   check("nextjs", "Next.js", [
     mc("In the App Router, which file defines a route's UI?", ["page.tsx", "index.tsx", "route.tsx", "view.tsx"], 0,
@@ -197,7 +241,7 @@ export const challenges: AuthoredChallenge[] = [
   ]),
   {
     id: "nodejs-1", skillId: "nodejs", type: "code", lang: "js",
-    title: "Parse a Query String", description: "Write parseQuery(qs) turning 'a=1&b=two' into { a: '1', b: 'two' }. Decode percent-escapes like %20, and return {} for an empty string.",
+    title: "Parse a query string", description: "Write parseQuery(qs) turning 'a=1&b=two' into { a: '1', b: 'two' }. Decode percent-escapes like %20, and return {} for an empty string.",
     difficulty: "beginner", xpReward: 50,
     starterCode: "function parseQuery(qs) {\n  \n}\n",
     hints: ["URLSearchParams is built in", "Object.fromEntries turns entries into an object"],
@@ -213,7 +257,7 @@ export const challenges: AuthoredChallenge[] = [
   ]),
   {
     id: "express-1", skillId: "express", type: "code", lang: "js",
-    title: "Route Matcher", description: "Write matchRoute(pattern, path): return an object of params if it matches, otherwise null. matchRoute('/users/:id', '/users/42') → { id: '42' }.",
+    title: "Match a route", description: "Write matchRoute(pattern, path): return an object of params if it matches, otherwise null. matchRoute('/users/:id', '/users/42') → { id: '42' }.",
     difficulty: "intermediate", xpReward: 60,
     starterCode: "function matchRoute(pattern, path) {\n  \n}\n",
     hints: ["Split both on '/'", "Different segment counts means no match", "Segments starting with ':' capture a param"],
@@ -230,6 +274,21 @@ export const challenges: AuthoredChallenge[] = [
     tf("GET requests should never change server state.", true, "GET is a safe method, so caches and crawlers may repeat it freely."),
     mc("Which verb replaces a resource entirely?", ["PUT", "PATCH", "POST", "GET"], 0, "PUT replaces. PATCH partially updates."),
   ]),
+
+  {
+    id: "rest-apis-1", skillId: "rest-apis", type: "code", lang: "js",
+    title: "Paginate a collection",
+    description: "Write paginate(items, page, perPage) for a GET /items?page=2 endpoint. page starts at 1. Return { data, page, totalPages, nextPage }, where nextPage is null on the last page or past the end.",
+    difficulty: "beginner", xpReward: 50,
+    starterCode: "function paginate(items, page, perPage) {\n  \n}\n",
+    hints: ["Page 1 starts at index 0, so the start index is (page - 1) * perPage", "totalPages is Math.ceil(items.length / perPage)", "slice never throws on a range past the end, it just returns []"],
+    tests: [
+      js("paginate([1, 2, 3, 4, 5], 1, 2)", { data: [1, 2], page: 1, totalPages: 3, nextPage: 2 }),
+      js("paginate([1, 2, 3, 4, 5], 3, 2)", { data: [5], page: 3, totalPages: 3, nextPage: null }),
+      js("paginate([1, 2, 3], 5, 2)", { data: [], page: 5, totalPages: 2, nextPage: null }),
+      js("paginate([], 1, 10)", { data: [], page: 1, totalPages: 0, nextPage: null }),
+    ],
+  },
 
   check("sql", "SQL", [
     mc("Which clause filters groups after aggregation?", ["HAVING", "WHERE", "GROUP BY", "ORDER BY"], 0, "WHERE filters rows before grouping. HAVING filters groups after."),
@@ -253,7 +312,7 @@ export const challenges: AuthoredChallenge[] = [
   ]),
   {
     id: "auth-1", skillId: "auth", type: "code", lang: "js",
-    title: "Token Expiry", description: "Write isExpired(payload, nowMs). JWT `exp` is in seconds; nowMs is milliseconds. Expired when now ≥ exp.",
+    title: "Check token expiry", description: "Write isExpired(payload, nowMs). JWT `exp` is in seconds; nowMs is milliseconds. Expired when now ≥ exp.",
     difficulty: "beginner", xpReward: 50,
     starterCode: "function isExpired(payload, nowMs) {\n  \n}\n",
     hints: ["Convert exp to milliseconds (× 1000)", "Use >= so a token is expired exactly at exp"],
@@ -283,13 +342,14 @@ export const challenges: AuthoredChallenge[] = [
   ]),
   {
     id: "pandas-1", skillId: "pandas", type: "code", lang: "js",
-    title: "Group By, by Hand", description: "Write groupMean(rows, key, field) returning { [group]: mean } — what df.groupby(key)[field].mean() does.",
+    title: "Group by, by hand", description: "Write groupMean(rows, key, field) returning { [group]: mean } — what df.groupby(key)[field].mean() does.",
     difficulty: "intermediate", xpReward: 60,
     starterCode: "function groupMean(rows, key, field) {\n  \n}\n",
     hints: ["Accumulate a sum and count per group", "Then divide sum by count for each group"],
     tests: [
       js("groupMean([{d:'a',s:10},{d:'a',s:20},{d:'b',s:5}], 'd', 's')", { a: 15, b: 5 }),
       js("groupMean([], 'd', 's')", {}),
+      js("groupMean([{d:'x',s:1},{d:'y',s:2},{d:'x',s:4}], 'd', 's')", { x: 2.5, y: 2 }),
     ],
   },
 
@@ -300,12 +360,42 @@ export const challenges: AuthoredChallenge[] = [
       "People compare lengths far better than angles."),
   ]),
 
+  {
+    id: "data-viz-1", skillId: "data-viz", type: "code", lang: "js",
+    title: "Bin values for a histogram",
+    description: "Write histogram(values, min, max, bins): split [min, max] into equal-width bins and count the values in each. A value equal to max goes in the last bin, and values outside the range are ignored.",
+    difficulty: "intermediate", xpReward: 60,
+    starterCode: "function histogram(values, min, max, bins) {\n  const counts = new Array(bins).fill(0);\n  \n  return counts;\n}\n",
+    hints: ["Each bin is (max - min) / bins wide", "Math.floor((v - min) / width) gives the bin index", "v === max gives index bins, one past the end, so clamp it"],
+    tests: [
+      js("histogram([1, 2, 2, 3, 9], 0, 10, 5)", [1, 3, 0, 0, 1]),
+      js("histogram([0, 10], 0, 10, 2)", [1, 1]),
+      js("histogram([-1, 5, 11], 0, 10, 2)", [0, 1]),
+      js("histogram([], 0, 1, 3)", [0, 0, 0]),
+    ],
+  },
+
   check("ml-basics", "ML Basics", [
     mc("99% accuracy on training data, 60% on test data. This is…", ["Overfitting", "Underfitting", "Good generalisation", "Regularization"], 0,
       "The model memorised the training set instead of learning the pattern."),
     tf("It's fine to evaluate a model on the data it was trained on.", false, "Hold out a test set, or you're measuring memory, not skill."),
     mc("Predicting a house price is…", ["Regression", "Classification", "Clustering", "Reinforcement learning"], 0, "A continuous numeric target means regression."),
   ]),
+
+  {
+    id: "ml-basics-1", skillId: "ml-basics", type: "code", lang: "js",
+    title: "Mean squared error",
+    description: "Write mse(actual, predicted), the average of the squared differences, the usual loss for regression. Throw an Error if the arrays have different lengths.",
+    difficulty: "beginner", xpReward: 50,
+    starterCode: "function mse(actual, predicted) {\n  \n}\n",
+    hints: ["Square each difference: (actual[i] - predicted[i]) ** 2", "Sum them, then divide by the number of values", "throw new Error('...') stops early when the lengths differ"],
+    tests: [
+      js("mse([1, 2, 3], [1, 2, 3])", 0),
+      js("mse([2, 4], [1, 7])", 5),
+      js("+mse([1, 2, 3], [2, 2, 4]).toFixed(4)", 0.6667),
+      js("(() => { try { mse([1, 2], [1]); return 'no error'; } catch { return 'threw'; } })()", "threw", "throws when the lengths differ"),
+    ],
+  },
 
   check("deep-learning", "Deep Learning", [
     mc("What does gradient descent minimize?", ["The loss function", "The number of layers", "The learning rate", "The dataset size"], 0,
@@ -314,6 +404,25 @@ export const challenges: AuthoredChallenge[] = [
     fill("Dense vector representations of words or items are called ___.", "embeddings", "Similar things end up close together in embedding space.", ["embedding"]),
   ]),
 
+  {
+    id: "deep-learning-1", skillId: "deep-learning", type: "code", lang: "js",
+    title: "Softmax",
+    description: "Write softmax(logits), turning a model's raw scores into probabilities that sum to 1. It must stay accurate for large scores like 1000, where Math.exp overflows to Infinity.",
+    difficulty: "intermediate", xpReward: 60,
+    starterCode: "function softmax(logits) {\n  \n}\n",
+    hints: [
+      "softmax(x)[i] = Math.exp(x[i]) / the sum of Math.exp over every x",
+      "Subtracting the same number from every logit doesn't change the result",
+      "So subtract Math.max(...logits) first, and the biggest exponent becomes Math.exp(0) = 1",
+    ],
+    tests: [
+      js("softmax([0, 0]).map((p) => +p.toFixed(4))", [0.5, 0.5]),
+      js("softmax([1, 2, 3]).map((p) => +p.toFixed(4))", [0.09, 0.2447, 0.6652]),
+      js("softmax([1000, 1000]).map((p) => +p.toFixed(4))", [0.5, 0.5]),
+      js("softmax([5])", [1]),
+    ],
+  },
+
   check("llm-apps", "LLM Apps", [
     mc("RAG stands for…", ["Retrieval-Augmented Generation", "Recursive Answer Graph", "Random Attention Gradient", "Rapid API Gateway"], 0,
       "Retrieve relevant documents, then put them in the prompt."),
@@ -321,6 +430,25 @@ export const challenges: AuthoredChallenge[] = [
     mc("Best way to know if a prompt change made your app better?", ["Run it against an eval set", "Try one example by hand", "Ask the model if it improved", "Make the prompt longer"], 0,
       "Evals turn \"feels better\" into a number you can track."),
   ]),
+
+  {
+    id: "llm-apps-1", skillId: "llm-apps", type: "code", lang: "js",
+    title: "Chunk text for retrieval",
+    description: "RAG pipelines split documents into overlapping chunks before embedding them. Write chunk(text, size, overlap): each chunk is at most size characters and starts size - overlap after the previous one. Stop once a chunk reaches the end of the text. Assume 0 ≤ overlap < size.",
+    difficulty: "intermediate", xpReward: 60,
+    starterCode: "function chunk(text, size, overlap) {\n  const chunks = [];\n  \n  return chunks;\n}\n",
+    hints: [
+      "Move the start forward by size - overlap each time",
+      "text.slice(start, start + size) is safe past the end of the string",
+      "Break out of the loop when start + size reaches text.length, or you'll add a chunk that's already covered",
+    ],
+    tests: [
+      js("chunk('abcdefghij', 4, 1)", ["abcd", "defg", "ghij"]),
+      js("chunk('abcdef', 2, 0)", ["ab", "cd", "ef"]),
+      js("chunk('abc', 10, 2)", ["abc"]),
+      js("chunk('', 4, 1)", []),
+    ],
+  },
 
   // ───────────── DevOps & Cloud ─────────────
   check("git", "Git", [
@@ -335,6 +463,21 @@ export const challenges: AuthoredChallenge[] = [
     tf("In `ls | grep log`, ls's output becomes grep's input.", true, "The pipe connects stdout to stdin."),
     fill("Print the current working directory with ___.", "pwd", "pwd = print working directory."),
   ]),
+
+  {
+    id: "linux-1", skillId: "linux", type: "code", lang: "js",
+    title: "Read a permission mode",
+    description: "Write toSymbolic(mode), turning an octal mode like '755' into the string ls -l shows: 'rwxr-xr-x'. The digits are owner, group and others, and each is a sum of 4 (read), 2 (write) and 1 (execute).",
+    difficulty: "beginner", xpReward: 50,
+    starterCode: "function toSymbolic(mode) {\n  \n}\n",
+    hints: ["Handle one digit at a time: [...mode] splits the string", "digit & 4 is non-zero when the read bit is set. Same for & 2 and & 1"],
+    tests: [
+      js("toSymbolic('755')", "rwxr-xr-x"),
+      js("toSymbolic('644')", "rw-r--r--"),
+      js("toSymbolic('600')", "rw-------"),
+      js("toSymbolic('000')", "---------"),
+    ],
+  },
 
   check("docker", "Docker", [
     mc("An image is to a container as…", ["A class is to an instance", "A VM is to a disk", "A branch is to a commit", "A port is to a host"], 0,
@@ -351,6 +494,21 @@ export const challenges: AuthoredChallenge[] = [
       "Restore service first, investigate second."),
   ]),
 
+  {
+    id: "ci-cd-1", skillId: "ci-cd", type: "code", lang: "js",
+    title: "Bump a version",
+    description: "Release pipelines bump the version before tagging. Write bump(version, part) for semantic versions: part is 'major', 'minor' or 'patch', and every number after the bumped one resets to 0.",
+    difficulty: "beginner", xpReward: 50,
+    starterCode: "function bump(version, part) {\n  \n}\n",
+    hints: ["version.split('.').map(Number) gives three numbers", "Strings concatenate: '9' + 1 is '91', not 10", "Bumping minor resets patch. Bumping major resets both"],
+    tests: [
+      js("bump('1.4.2', 'patch')", "1.4.3"),
+      js("bump('1.4.2', 'minor')", "1.5.0"),
+      js("bump('1.4.2', 'major')", "2.0.0"),
+      js("bump('0.9.9', 'minor')", "0.10.0"),
+    ],
+  },
+
   check("kubernetes", "Kubernetes", [
     mc("The smallest deployable unit in Kubernetes is a…", ["Pod", "Node", "Container image", "Namespace"], 0, "A pod wraps one or more containers that share a network namespace."),
     tf("A Deployment keeps the desired number of replicas running.", true, "It reconciles actual state towards the declared replica count."),
@@ -364,6 +522,26 @@ export const challenges: AuthoredChallenge[] = [
     mc("Autoscaling adds capacity based on…", ["Load metrics like CPU or request rate", "The time zone", "Number of git commits", "Team size"], 0,
       "Scale policies watch metrics and add or remove instances."),
   ]),
+
+  {
+    id: "cloud-1", skillId: "cloud", type: "code", lang: "js",
+    title: "Evaluate an access policy",
+    description: "Write isAllowed(policy, action, resource) the way cloud IAM does: a request is denied unless a statement allows it, and any matching Deny wins over every Allow. A pattern ending in * matches anything that starts with the rest of it.",
+    difficulty: "intermediate", xpReward: 60,
+    starterCode: "// policy: [{ effect: 'Allow' | 'Deny', actions: ['s3:GetObject'], resources: ['photos/*'] }]\nfunction isAllowed(policy, action, resource) {\n  \n}\n",
+    hints: [
+      "Write matches(pattern, value) first: 'photos/*' matches anything starting with 'photos/'",
+      "A statement applies when one of its actions and one of its resources match",
+      "Allowed = some applying statement is an Allow, and none is a Deny",
+    ],
+    tests: [
+      js("isAllowed([{ effect: 'Allow', actions: ['s3:GetObject'], resources: ['photos/*'] }], 's3:GetObject', 'photos/cat.png')", true),
+      js("isAllowed([{ effect: 'Allow', actions: ['s3:GetObject'], resources: ['photos/*'] }], 's3:DeleteObject', 'photos/cat.png')", false),
+      js("isAllowed([{ effect: 'Allow', actions: ['s3:GetObject'], resources: ['photos/*'] }], 's3:GetObject', 'secrets/key.pem')", false),
+      js("isAllowed([{ effect: 'Allow', actions: ['s3:*'], resources: ['*'] }, { effect: 'Deny', actions: ['s3:DeleteObject'], resources: ['*'] }], 's3:DeleteObject', 'photos/cat.png')", false),
+      js("isAllowed([{ effect: 'Allow', actions: ['s3:*'], resources: ['*'] }, { effect: 'Deny', actions: ['s3:DeleteObject'], resources: ['*'] }], 's3:PutObject', 'photos/cat.png')", true),
+    ],
+  },
 
   check("iac", "Terraform", [
     mc("What does terraform plan do?", ["Shows the changes it would make, without applying them", "Deletes infrastructure", "Writes provider code", "Formats files"], 0,

@@ -1,3 +1,4 @@
-import { runJs } from "./runner";
+import { captureLogs, runJs } from "./runner";
 
-self.onmessage = (e: MessageEvent) => self.postMessage(runJs(e.data.code, e.data.tests));
+self.onmessage = (e: MessageEvent) =>
+  self.postMessage(e.data.tests ? runJs(e.data.code, e.data.tests) : captureLogs(e.data.code, e.data.call));

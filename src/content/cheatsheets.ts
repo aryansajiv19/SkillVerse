@@ -3,11 +3,11 @@ import type { CheatSheetData } from "@/components/CheatSheet";
 export const cheatSheets: Record<string, CheatSheetData> = {
   html: {
     skillId: 'html',
-    title: 'HTML Essentials Cheat Sheet',
-    description: 'Quick reference for the most common HTML tags and attributes',
+    title: 'HTML cheat sheet',
+    description: 'The tags and attributes you reach for most.',
     sections: [
       {
-        title: 'Document Structure',
+        title: 'Document structure',
         items: [
           { syntax: '<!DOCTYPE html>', description: 'Declares HTML5 document type', example: '<!DOCTYPE html>\n<html>\n  <head>...</head>\n  <body>...</body>\n</html>' },
           { syntax: '<html>', description: 'Root element of HTML page', example: '<html lang="en">...</html>' },
@@ -16,13 +16,13 @@ export const cheatSheets: Record<string, CheatSheetData> = {
         ]
       },
       {
-        title: 'Text Elements',
+        title: 'Text',
         items: [
           { syntax: '<h1> to <h6>', description: 'Heading levels (h1 is largest)', example: '<h1>Main Title</h1>\n<h2>Subtitle</h2>' },
           { syntax: '<p>', description: 'Paragraph of text', example: '<p>This is a paragraph.</p>' },
           { syntax: '<a>', description: 'Hyperlink', example: '<a href="https://example.com">Link</a>' },
-          { syntax: '<strong>', description: 'Bold/important text', example: '<strong>Important!</strong>' },
-          { syntax: '<em>', description: 'Emphasized/italic text', example: '<em>Emphasis</em>' },
+          { syntax: '<strong>', description: 'Important text (bold by default)', example: '<strong>Important</strong>' },
+          { syntax: '<em>', description: 'Stressed emphasis (italic by default)', example: '<em>Emphasis</em>' },
         ]
       },
       {
@@ -34,7 +34,7 @@ export const cheatSheets: Record<string, CheatSheetData> = {
         ]
       },
       {
-        title: 'Media & Forms',
+        title: 'Media and forms',
         items: [
           { syntax: '<img>', description: 'Image element', example: '<img src="image.jpg" alt="Description">' },
           { syntax: '<form>', description: 'Form container', example: '<form action="/submit">\n  ...\n</form>' },
@@ -46,8 +46,8 @@ export const cheatSheets: Record<string, CheatSheetData> = {
   },
   css: {
     skillId: 'css',
-    title: 'CSS Essentials Cheat Sheet',
-    description: 'Quick reference for common CSS selectors and properties',
+    title: 'CSS cheat sheet',
+    description: 'Common selectors, layout and styling properties.',
     sections: [
       {
         title: 'Selectors',
@@ -80,19 +80,19 @@ export const cheatSheets: Record<string, CheatSheetData> = {
   },
   javascript: {
     skillId: 'javascript',
-    title: 'JavaScript Essentials Cheat Sheet',
-    description: 'Quick reference for JavaScript syntax and concepts',
+    title: 'JavaScript cheat sheet',
+    description: 'Variables, types, functions and control flow.',
     sections: [
       {
         title: 'Variables',
         items: [
           { syntax: 'let', description: 'Block-scoped variable (can change)', example: 'let name = "Alice";\nname = "Bob";' },
-          { syntax: 'const', description: 'Block-scoped constant (cannot change)', example: 'const PI = 3.14159;' },
+          { syntax: 'const', description: 'Block-scoped binding that can\'t be reassigned (objects inside can still change)', example: 'const PI = 3.14159;' },
           { syntax: 'var', description: 'Function-scoped variable (legacy)', example: 'var count = 0;' },
         ]
       },
       {
-        title: 'Data Types',
+        title: 'Data types',
         items: [
           { syntax: 'string', description: 'Text data', example: 'let text = "Hello";\nlet text2 = \'World\';' },
           { syntax: 'number', description: 'Numeric data', example: 'let age = 25;\nlet price = 19.99;' },
@@ -109,7 +109,7 @@ export const cheatSheets: Record<string, CheatSheetData> = {
         ]
       },
       {
-        title: 'Control Flow',
+        title: 'Control flow',
         items: [
           { syntax: 'if/else', description: 'Conditional execution', example: 'if (age >= 18) {\n  console.log("Adult");\n} else {\n  console.log("Minor");\n}' },
           { syntax: 'for loop', description: 'Iterate a number of times', example: 'for (let i = 0; i < 5; i++) {\n  console.log(i);\n}' },
