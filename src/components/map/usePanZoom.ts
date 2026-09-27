@@ -13,10 +13,12 @@ const ZOOM_STEP = 1.25;
  * variables (--tx, --ty, --k) on the viewport and a transform on the SVG line group,
  * so dragging never re-renders the stars.
  */
-export const usePanZoom = ({ getSafe, reduced, watch }: {
+export const usePanZoom = ({ getSafe, reduced, watch, getHome }: {
   /** Screen insets kept clear of stars: fixed nav, bottom controls, zoom buttons. */
   getSafe: (vw: number, vh: number) => Insets;
   reduced: boolean;
+  /** When the galaxy is wider than the screen (phones), the world point to start on, e.g. the learner's next stars. */
+  getHome?: () => Point | null;
   /** Re-measure the safe area when this element resizes (the bottom controls). */
   watch?: RefObject<HTMLElement>;
 }) => {
@@ -30,8 +32,8 @@ export const usePanZoom = ({ getSafe, reduced, watch }: {
   const raf = useRef(0);
   // Where an in-flight animation is heading, so reveal() doesn't fight it.
   const goal = useRef<View | null>(null);
-  const opts = useRef({ getSafe, reduced });
-  opts.current = { getSafe, reduced };
+  const opts = useRef({ getSafe, reduced, getHome });
+  opts.current = { getSafe, reduced, getHome };
 
   const api = useMemo(() => {
     const measure = () => {
@@ -85,7 +87,12 @@ export const usePanZoom = ({ getSafe, reduced, watch }: {
 
     const fitView = () => {
       const { w, h } = size.current;
-      return centerOn(GALAXY, galaxyScale(w, h, safe.current), w, h, safe.current);
+      const k = galaxyScale(w, h, safe.current);
+      const whole = centerOn(GALAXY, k, w, h, safe.current);
+      const home = opts.current.getHome?.();
+      const overflows = (GALAXY.x1 - GALAXY.x0) * k > w - safe.current.left - safe.current.right;
+      // Too wide to show at a readable zoom: slide sideways to where the learner's next stars are.
+      return overflows && home ? { ...whole, x: safeCenter(w, h, safe.current).x - home.x * k } : whole;
     };
 
     return {

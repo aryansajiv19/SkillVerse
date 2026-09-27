@@ -208,7 +208,7 @@ const Narrow = ({ ids }: { ids: Ids }) => (
     <text x={245} y={319} fontSize={11.5} className="fill-muted-foreground">no API grants</text>
     <Box x={152} y={354} w={140} h={64} compact center lines={["check_answer", "submit_quiz", "reset_skill"]} monoLines />
     <Box x={152} y={450} w={140} h={46} compact center title="completions" monoTitle lines={["one row per pass"]} />
-    <Box x={152} y={530} w={140} h={46} compact center title="player_stats" monoTitle lines={["XP, streaks, rank"]} />
+    <Box x={152} y={530} w={140} h={46} compact center title="player_stats" monoTitle lines={["XP and streaks"]} />
 
     <Arrow d="M222,224 V354" ids={ids} gold />
     <Arrow d="M270,354 V326" ids={ids} gold />
@@ -224,7 +224,7 @@ const Narrow = ({ ids }: { ids: Ids }) => (
     <Box x={140} y={612} w={200} h={48} compact title="Realtime" lines={["pushes row changes"]} />
     <Arrow d="M222,576 V612" ids={ids} gold />
     <Arrow d="M140,636 H112" ids={ids} gold />
-    <Step x={121} y={636} n={5} r={8} />
+    <Step x={126} y={651} n={5} r={8} />
     <Label x={121} y={622} anchor="middle">live</Label>
 
     <Box x={140} y={676} w={200} h={48} compact title="Edge Function: chat" lines={["JWT required, spends quota"]} />

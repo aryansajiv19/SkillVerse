@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { skills, tracks } from "@/content/skills";
 
 const REPO = "https://github.com/aryansajiv19/SkillVerse";
-const BRANCH = "revive";
+// HEAD resolves to the default branch on GitHub, so links survive the feature branch being merged and deleted.
+const BRANCH = "HEAD";
 const INIT = "supabase/migrations/20260926203546_init.sql";
 const GRADING = "supabase/migrations/20260927020424_server_side_grading.sql";
 const STATS = "supabase/migrations/20260927020426_scalable_stats.sql";
@@ -22,7 +23,7 @@ const Src = ({ path }: { path: string }) => (
     className="rounded-sm font-mono text-[0.8125rem] text-muted-foreground underline decoration-muted-foreground/40 underline-offset-4 [overflow-wrap:anywhere] hover:text-foreground hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
   >
     {/* break long paths after a slash or underscore, not mid-word */}
-    {path.split(/(?<=[/_])/).map((part, i) => <span key={i}>{i > 0 && <wbr />}{part}</span>)}
+    {(path.match(/[^/_]*[/_]?/g) ?? []).filter(Boolean).map((part, i) => <span key={i}>{i > 0 && <wbr />}{part}</span>)}
   </a>
 );
 
@@ -110,7 +111,9 @@ const steps: Item[] = [
       <>
         Your client refetches its completions and recomputes which stars are unlocked with the same rule as the
         database's <C>skill_unlocked()</C>: every prerequisite mastered. The result screen names the stars you just
-        unlocked, and on the map the hollow ring becomes a filled star glowing in its constellation's colour.
+        unlocked. Back on the map, the camera frames the star, it ignites from a hollow ring into a filled star in its
+        constellation's colour, and new constellation lines draw out to the stars it unlocked. With reduced motion on,
+        the map simply lands on the star.
       </>
     ),
     src: ["src/lib/progress.ts", "src/pages/Learn.tsx", "src/components/SkillStar.tsx"],
@@ -137,7 +140,7 @@ const security: Item[] = [
       <>
         Supabase grants full access to new tables by default. A migration revokes that and grants back only what the app
         uses, so anything else fails loudly with "permission denied" instead of silently matching nothing. Completions are
-        readable by any signed-in player, because they feed the leaderboard, but only their owner can write them. For
+        readable by any signed-in player, because they feed public profiles, but only their owner can write them. For
         code challenges, clients may insert one column, <C>challenge_id</C>: <C>user_id</C> defaults to{" "}
         <C>auth.uid()</C> and <C>completed_at</C> to <C>now()</C>, so nobody can backdate activity to fake a streak. The
         policy also requires a real, unlocked, non-quiz challenge.
@@ -387,8 +390,9 @@ const About = () => (
     <Section id="testing" title="Testing and CI">
       <div className="mt-6 space-y-6 leading-relaxed text-foreground/85">
         <div>
-          <strong className="font-semibold text-foreground">pgTAP</strong> suites run inside a rolled-back transaction as
-          the <C>authenticated</C> role with forged JWT claims, covering write rules, grading, stats and operations. They
+          <strong className="font-semibold text-foreground">pgTAP</strong> suites each run inside a rolled-back transaction,
+          covering write rules, grading, stats, operations and privilege boundaries. The write-rule, grading and security
+          suites act as the <C>authenticated</C> role with forged JWT claims. They
           assert things like "cannot backdate activity to fake a streak", "cannot peek at answers for a locked skill" and
           "incremental stats match a full recompute".
           <Sources paths={["supabase/tests/"]} />
@@ -401,13 +405,17 @@ const About = () => (
           <Sources paths={["content/catalog.test.ts", "src/lib/progress.test.ts", "src/lib/runner.test.ts"]} />
         </div>
         <div>
-          <strong className="font-semibold text-foreground">End-to-end and accessibility tests</strong> use Playwright
-          with axe-core.
+          <strong className="font-semibold text-foreground">End-to-end tests</strong> drive the real app in Chromium
+          against a local Supabase: a fresh guest passes a skill check, fails one, solves a code challenge, resets a skill
+          and its dependents, renames, and checks the leaderboard. Every main page is scanned with axe-core for WCAG 2.1 AA
+          violations, with no rules disabled.
+          <Sources paths={["e2e/", "playwright.config.ts"]} />
         </div>
         <div>
           <strong className="font-semibold text-foreground">GitHub Actions</strong> runs on every pull request and push
-          to main. One job typechecks, lints, runs Vitest, regenerates the catalog SQL and fails if it differs from the
-          committed file, then builds. The other starts Postgres with the Supabase CLI and runs the pgTAP suites.
+          to main, in three jobs. The first typechecks, lints, runs Vitest, regenerates the catalog and fails if it differs
+          from the committed files, builds, and runs <C>check:bundle</C> to prove no answers shipped. The second starts
+          Supabase and runs the Playwright and axe suite. The third starts Postgres with the Supabase CLI and runs pgTAP.
           <Sources paths={[".github/workflows/ci.yml"]} />
         </div>
       </div>

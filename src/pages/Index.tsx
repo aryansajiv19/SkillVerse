@@ -12,7 +12,7 @@ import { usePanZoom } from "@/components/map/usePanZoom";
 import { useReducedMotion } from "@/components/map/useReducedMotion";
 import { GALAXY, WORLD, atWorld, boundsOf, trackBounds, worldPos, type Insets } from "@/components/map/geometry";
 import { useProgress } from "@/hooks/useProgress";
-import { levelProgress } from "@/lib/progress";
+import { levelProgress, nextUp } from "@/lib/progress";
 import { tracks, unlocksOf, type TrackId } from "@/content/skills";
 import { cn } from "@/lib/utils";
 
@@ -85,7 +85,16 @@ const Index = () => {
   const stackRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<HTMLDivElement>(null);
   const getSafe = useCallback((vw: number, vh: number) => safeInsets(vw, vh, [stackRef.current, zoomRef.current]), []);
-  const { viewportRef, groupRef, onKeyDown, show, fit, reveal, zoomBy, contains, ZOOM_STEP } = usePanZoom({ getSafe, reduced, watch: stackRef });
+  const { viewportRef, groupRef, onKeyDown, show, fit, reveal, zoomBy, contains, ZOOM_STEP } = usePanZoom({
+    getSafe,
+    reduced,
+    watch: stackRef,
+    // Phones can't show the whole galaxy readably; start where the learner can act next.
+    getHome: () => {
+      const next = nextUp(skills).map(worldPos);
+      return next.length ? { x: next.reduce((a, p) => a + p.x, 0) / next.length, y: 0 } : null;
+    },
+  });
 
   const lastSelected = useRef<string | null>(null);
   const introFocus = useRef<string | null>(null);
@@ -284,12 +293,12 @@ const Index = () => {
         <p aria-live="polite" className="sr-only">{announcement}</p>
 
         {/* Centred over the tutor button (bottom-right, 56px, 24px in). */}
-        <div ref={zoomRef} className="absolute bottom-[92px] right-[30px] z-40">
+        <div ref={zoomRef} className="absolute bottom-[calc(var(--bottom-bar-height)_+_92px)] right-[30px] z-40">
           <ZoomControls onZoomIn={() => zoomBy(ZOOM_STEP)} onZoomOut={() => zoomBy(1 / ZOOM_STEP)} onFit={() => fit()} />
         </div>
 
         {/* Stays clear of the tutor button and wraps to two rows when narrow, so nothing overlaps. */}
-        <div ref={stackRef} className="pointer-events-none absolute bottom-6 left-4 right-24 z-40 flex flex-wrap items-center gap-2 sm:left-6 [&>*]:pointer-events-auto">
+        <div ref={stackRef} className="pointer-events-none absolute bottom-[calc(var(--bottom-bar-height)_+_1.5rem)] left-4 right-24 z-40 flex flex-wrap items-center gap-2 sm:left-6 [&>*]:pointer-events-auto">
           <TrackFocus value={focus} onChange={focusTrack} />
           <Hud level={lvl.level} pct={lvl.pct} toNext={lvl.toNext} lit={skills.filter((s) => s.mastered).length} total={skills.length} streak={stats.streak} />
         </div>
