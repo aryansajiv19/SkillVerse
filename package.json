@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
-    "db:catalog": "node scripts/gen-catalog.ts"
+    "db:catalog": "node scripts/gen-catalog.ts",
+    "check:bundle": "node scripts/check-bundle.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",

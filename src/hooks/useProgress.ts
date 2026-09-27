@@ -1,17 +1,53 @@
-import { useMemo } from "react";
+// All reads and writes of learning progress. Writes go through RLS-checked inserts
+// (code challenges, games) or server functions (quizzes, resets); XP and streaks are
+// computed in Postgres and read back from the leaderboard view.
+import { useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { skillStates } from "@/lib/progress";
-import { checkIdFor } from "@/content/challenges";
 
-const EMPTY_STATS = { xp: 0, level: 1, skills_mastered: 0, streak: 0, rank: 0, username: "" };
+export interface Stats {
+  xp: number;
+  level: number;
+  skills_mastered: number;
+  challenges_done: number;
+  streak: number;
+  best_streak: number;
+  rank: number;
+  username: string;
+}
 
-// Duplicate inserts (already completed) are fine; everything else is a real error.
-const insertIgnoringDupes = async (q: PromiseLike<{ error: { code: string } | null }>) => {
-  const { error } = await q;
-  if (error && error.code !== "23505") throw error;
-};
+export interface QuizResult {
+  score: number;
+  total: number;
+  passed: boolean;
+  mastered: boolean;
+  xp_awarded: number;
+}
+
+export interface AnswerFeedback {
+  correct: boolean;
+  answer: string;
+  explanation: string;
+}
+
+type Row = { xp: number | null; level: number | null; skills_mastered: number | null; challenges_done: number | null;
+  streak: number | null; best_streak: number | null; rank: number | null; username: string | null };
+
+/** View columns are typed nullable by the generator; they never are for a real player. */
+export const toStats = (r: Row | null): Stats => ({
+  xp: r?.xp ?? 0,
+  level: r?.level ?? 1,
+  skills_mastered: r?.skills_mastered ?? 0,
+  challenges_done: r?.challenges_done ?? 0,
+  streak: r?.streak ?? 0,
+  best_streak: r?.best_streak ?? 0,
+  rank: r?.rank ?? 0,
+  username: r?.username ?? "",
+});
+
+const EMPTY_STATS = toStats(null);
 
 export const useProgress = () => {
   const { user } = useAuth();
@@ -38,50 +74,48 @@ export const useProgress = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("leaderboard").select("*").eq("user_id", uid!).maybeSingle();
       if (error) throw error;
-      // View columns are typed nullable; they never are for a real profile row.
-      return {
-        xp: data?.xp ?? 0,
-        level: data?.level ?? 1,
-        skills_mastered: data?.skills_mastered ?? 0,
-        streak: data?.streak ?? 0,
-        rank: data?.rank ?? 0,
-        username: data?.username ?? "",
-      };
+      return toStats(data);
     },
   });
 
   const refresh = () => qc.invalidateQueries();
 
+  /** Code challenges and games. Already-completed is fine (unique violation ignored). */
   const completeChallenge = useMutation({
-    mutationFn: (challengeId: string) =>
-      insertIgnoringDupes(supabase.from("challenge_completions").insert({ challenge_id: challengeId })),
-    onSuccess: refresh,
-  });
-
-  /** Passing a skill's check masters the skill. */
-  const passSkillCheck = useMutation({
-    mutationFn: async (skillId: string) => {
-      await insertIgnoringDupes(supabase.from("challenge_completions").insert({ challenge_id: checkIdFor(skillId) }));
-      await insertIgnoringDupes(supabase.from("skill_completions").insert({ skill_id: skillId }));
+    mutationFn: async (challengeId: string) => {
+      const { error } = await supabase.from("challenge_completions").insert({ challenge_id: challengeId });
+      if (error && error.code !== "23505") throw error;
+      return { xpAwarded: !error };
     },
     onSuccess: refresh,
   });
 
-  const unmaster = useMutation({
-    mutationFn: async (skillId: string) => {
-      const a = await supabase.from("skill_completions").delete().eq("user_id", uid!).eq("skill_id", skillId);
-      if (a.error) throw a.error;
-      const b = await supabase.from("challenge_completions").delete().eq("user_id", uid!).eq("challenge_id", checkIdFor(skillId));
-      if (b.error) throw b.error;
+  /** Graded in Postgres; passing a skill check masters the skill. */
+  const submitQuiz = useMutation({
+    mutationFn: async ({ challengeId, answers }: { challengeId: string; answers: string[] }) => {
+      const { data, error } = await supabase.rpc("submit_quiz", { p_challenge_id: challengeId, p_answers: answers });
+      if (error) throw error;
+      return data as unknown as QuizResult;
     },
     onSuccess: refresh,
   });
 
-  const reset = useMutation({
+  /** Resets the skill and every skill built on it. Returns the ids that were reset. */
+  const resetSkill = useMutation({
+    mutationFn: async (skillId: string) => {
+      const { data, error } = await supabase.rpc("reset_skill", { p_skill_id: skillId });
+      if (error) throw error;
+      return data ?? [];
+    },
+    onSuccess: refresh,
+  });
+
+  const resetAll = useMutation({
     mutationFn: async () => {
-      const a = await supabase.from("skill_completions").delete().eq("user_id", uid!);
+      // challenge rows first isn't required, but keeps the stats trigger to two refreshes
+      const a = await supabase.from("challenge_completions").delete().eq("user_id", uid!);
       if (a.error) throw a.error;
-      const b = await supabase.from("challenge_completions").delete().eq("user_id", uid!);
+      const b = await supabase.from("skill_completions").delete().eq("user_id", uid!);
       if (b.error) throw b.error;
     },
     onSuccess: refresh,
@@ -92,29 +126,86 @@ export const useProgress = () => {
   const skills = useMemo(() => skillStates(mastered), [mastered]);
 
   return {
-    loading: !uid || completions.isLoading,
+    /** true until the first load of this user's progress has finished */
+    loading: !uid || completions.isPending || stats.isPending,
     error: completions.error ?? stats.error,
+    retry: refresh,
     skills,
     mastered,
     doneChallenges,
     history: completions.data,
     stats: stats.data ?? EMPTY_STATS,
     completeChallenge,
-    passSkillCheck,
-    unmaster,
-    reset,
+    submitQuiz,
+    resetSkill,
+    resetAll,
   };
 };
 
-export const useLeaderboard = () => {
+/** Instant per-question feedback. Stateless on the server; the final grade comes from submitQuiz. */
+export const checkAnswer = async (challengeId: string, index: number, answer: string): Promise<AnswerFeedback> => {
+  const { data, error } = await supabase.rpc("check_answer", { p_challenge_id: challengeId, p_index: index, p_answer: answer });
+  if (error) throw error;
+  return data as unknown as AnswerFeedback;
+};
+
+/** Top players, kept live: any stats change anywhere refetches (debounced). */
+export const useLeaderboard = (limit = 50) => {
   const { user } = useAuth();
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    if (!user) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const channel = supabase
+      .channel(`leaderboard-${limit}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "player_stats" }, () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => qc.invalidateQueries({ queryKey: ["leaderboard"] }), 1500);
+      })
+      .subscribe();
+    return () => {
+      clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [user, qc]);
+
   return useQuery({
-    queryKey: ["leaderboard"],
+    queryKey: ["leaderboard", limit],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.from("leaderboard").select("*").gt("xp", 0).order("rank").limit(50);
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("user_id, username, xp, level, skills_mastered, streak, rank")
+        .gt("xp", 0)
+        .order("xp", { ascending: false })
+        .order("user_id")
+        .limit(limit);
       if (error) throw error;
       return data;
+    },
+  });
+};
+
+/** A public profile by username: stats + mastery + activity dates. */
+export const usePublicProfile = (username: string) => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["profile", username.toLowerCase()],
+    enabled: !!user && !!username,
+    queryFn: async () => {
+      // ilike for case-insensitive match; escape _ and %, which are wildcards (and _ is legal in names)
+      const pattern = username.replace(/[\\%_]/g, "\\$&");
+      const { data: row, error } = await supabase.from("leaderboard").select("*").ilike("username", pattern).maybeSingle();
+      if (error) throw error;
+      if (!row?.user_id) return null;
+      const [s, c] = await Promise.all([
+        supabase.from("skill_completions").select("skill_id, completed_at").eq("user_id", row.user_id),
+        supabase.from("challenge_completions").select("challenge_id, completed_at").eq("user_id", row.user_id),
+      ]);
+      if (s.error) throw s.error;
+      if (c.error) throw c.error;
+      return { userId: row.user_id, stats: toStats(row), skills: s.data, challenges: c.data };
     },
   });
 };
@@ -125,7 +216,8 @@ export const useUsername = () => {
   return useMutation({
     mutationFn: async (username: string) => {
       const { error } = await supabase.from("profiles").update({ username }).eq("id", user!.id);
-      if (error) throw error.code === "23505" ? new Error("That name is taken") : error.code === "23514" ? new Error("3–20 letters, numbers, _ or -") : error;
+      if (error)
+        throw error.code === "23505" ? new Error("That name is taken") : error.code === "23514" ? new Error("Use 3–20 letters, numbers, _ or -") : error;
     },
     onSuccess: () => qc.invalidateQueries(),
   });

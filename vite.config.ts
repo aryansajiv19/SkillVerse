@@ -6,5 +6,5 @@ export default defineConfig({
   server: { host: "::", port: 8080 },
   plugins: [react()],
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
-  test: { include: ["src/**/*.test.ts"] },
+  test: { include: ["src/**/*.test.ts", "content/**/*.test.ts"] },
 });

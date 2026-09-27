@@ -10,6 +10,8 @@ interface ThreeGalaxyCanvasProps {
   mousePosition: { x: number; y: number };
 }
 
+const reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 export const ThreeGalaxyCanvas = ({ mousePosition }: ThreeGalaxyCanvasProps) => {
   return (
     <div className="fixed inset-0 -z-10">
@@ -21,9 +23,9 @@ export const ThreeGalaxyCanvas = ({ mousePosition }: ThreeGalaxyCanvasProps) => 
           powerPreference: "high-performance",
         }}
         dpr={[1, 2]}
-        frameloop="always"
+        frameloop={reducedMotion ? "demand" : "always"}
         style={{
-          background: "radial-gradient(ellipse at center, hsl(270, 60%, 6%) 0%, hsl(265, 70%, 4%) 40%, hsl(260, 80%, 2%) 100%)",
+          background: "radial-gradient(ellipse at 50% 40%, hsl(232, 55%, 13%) 0%, hsl(232, 60%, 8%) 45%, hsl(235, 70%, 4%) 100%)",
         }}
       >
         <GalaxyBackground mousePosition={mousePosition} starCount={12000} />

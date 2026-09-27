@@ -78,10 +78,15 @@ export const AIAssistant = () => {
         setNotice(err.error ?? "The tutor is unavailable right now.");
         return;
       }
-      setMessages((m) => [...m, { role: "assistant", content: "" }]);
-      await readStream(resp.body, (delta) =>
-        setMessages((m) => [...m.slice(0, -1), { role: "assistant", content: m[m.length - 1].content + delta }]),
-      );
+      let started = false;
+      await readStream(resp.body, (delta) => {
+        const first = !started;
+        started = true;
+        setMessages((m) =>
+          first ? [...m, { role: "assistant", content: delta }] : [...m.slice(0, -1), { role: "assistant", content: m[m.length - 1].content + delta }],
+        );
+      });
+      if (!started) setNotice("The tutor didn't reply. Try asking another way.");
     } catch {
       setNotice("Couldn't reach the tutor. Check your connection and try again.");
     } finally {
@@ -107,7 +112,7 @@ export const AIAssistant = () => {
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "flex justify-end" : "flex"}>
             <p className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 ${m.role === "user" ? "bg-foreground text-background" : "bg-muted"}`}>
-              {m.content || "…"}
+              {m.content}
             </p>
           </div>
         ))}

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { skills, tracks, skillById } from "./skills";
-import { challenges, checkIdFor, type CodeChallenge } from "./challenges";
+import { skills, tracks, skillById } from "@/content/skills";
+import { checkIdFor, type CodeChallenge } from "@/content/types";
+import { challenges as publicChallenges } from "@/content/challenges";
 import { runJs } from "@/lib/runner";
+import { challenges } from "./challenges";
+import { buildCatalog, normalizeAnswer } from "../scripts/catalog";
 
 describe("skill graph", () => {
   it("has unique ids", () => {
@@ -51,6 +54,34 @@ describe("challenges", () => {
       const checks = challenges.filter((c) => c.skillId === s.id && c.type === "quiz");
       expect(checks.map((c) => c.id), s.id).toEqual([checkIdFor(s.id)]);
     }
+  });
+
+  it("ship to the browser without answers or explanations", () => {
+    const json = JSON.stringify(publicChallenges);
+    expect(json).not.toMatch(/"correctAnswer"|"explanation"|"alsoAccept"/);
+    expect(publicChallenges.map((c) => c.id)).toEqual(challenges.map((c) => c.id));
+  });
+
+  it("keep the right answer attached to the same option text after shuffling", () => {
+    const { publicChallenges: shipped, answers } = buildCatalog();
+    for (const a of answers) {
+      const src = challenges.find((c) => c.id === a.challengeId);
+      const out = shipped.find((c) => c.id === a.challengeId);
+      if (src?.type !== "quiz" || out?.type !== "quiz") throw new Error(a.challengeId);
+      const q = src.questions[a.idx];
+      if (q.type === "fill-in-blank") expect(a.accepted).toContain(normalizeAnswer(q.correctAnswer as string));
+      else expect(out.questions[a.idx].options![Number(a.accepted[0])]).toBe(q.options![q.correctAnswer as number]);
+    }
+  });
+
+  it("spread correct options across positions, so 'always pick A' fails", () => {
+    const { publicChallenges: shipped, answers } = buildCatalog();
+    const positions = answers.filter((a) => {
+      const c = shipped.find((x) => x.id === a.challengeId);
+      return c?.type === "quiz" && c.questions[a.idx].type === "multiple-choice";
+    }).map((a) => Number(a.accepted[0]));
+    const share = Math.max(...[0, 1, 2, 3].map((p) => positions.filter((x) => x === p).length)) / positions.length;
+    expect(share).toBeLessThan(0.4);
   });
 
   it("have answerable questions", () => {

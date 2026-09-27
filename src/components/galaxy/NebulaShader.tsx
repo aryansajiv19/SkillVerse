@@ -11,10 +11,10 @@ export class NebulaMaterial extends THREE.ShaderMaterial {
     super({
       uniforms: {
         time: { value: 0 },
-        colorA: { value: new THREE.Color(0.58, 0.2, 0.92) }, // Electric violet
-        colorB: { value: new THREE.Color(0.4, 0.6, 0.95) }, // Cosmic blue
-        colorC: { value: new THREE.Color(0.2, 0.11, 0.35) }, // Dark space purple
-        colorD: { value: new THREE.Color(0.65, 0.3, 0.8) }, // Purple glow
+        colorA: { value: new THREE.Color(0.14, 0.18, 0.5) }, // Deep indigo
+        colorB: { value: new THREE.Color(0.1, 0.38, 0.52) }, // Faint teal
+        colorC: { value: new THREE.Color(0.04, 0.055, 0.15) }, // Atlas navy
+        colorD: { value: new THREE.Color(0.32, 0.26, 0.62) }, // Soft violet
       },
       vertexShader: `
         varying vec2 vUv;
@@ -37,6 +37,8 @@ export class NebulaMaterial extends THREE.ShaderMaterial {
         varying vec3 vPosition;
         
         // Smooth noise function (no harsh artifacts)
+        float hash(float n) { return fract(sin(n) * 43758.5453123); }
+
         float noise(vec3 p) {
           vec3 i = floor(p);
           vec3 f = fract(p);
@@ -45,13 +47,13 @@ export class NebulaMaterial extends THREE.ShaderMaterial {
           float n = i.x + i.y * 57.0 + 113.0 * i.z;
           return mix(
             mix(
-              mix(sin(n + 0.0), sin(n + 1.0), f.x),
-              mix(sin(n + 57.0), sin(n + 58.0), f.x),
+              mix(hash(n + 0.0), hash(n + 1.0), f.x),
+              mix(hash(n + 57.0), hash(n + 58.0), f.x),
               f.y
             ),
             mix(
-              mix(sin(n + 113.0), sin(n + 114.0), f.x),
-              mix(sin(n + 170.0), sin(n + 171.0), f.x),
+              mix(hash(n + 113.0), hash(n + 114.0), f.x),
+              mix(hash(n + 170.0), hash(n + 171.0), f.x),
               f.y
             ),
             f.z
@@ -92,14 +94,14 @@ export class NebulaMaterial extends THREE.ShaderMaterial {
           
           // Add glowing center
           float glow = 1.0 - length(vUv - 0.5) * 0.5;
-          color += colorD * glow * 0.25;
+          color += colorD * glow * 0.12;
           
           // Add depth variation
           float depthFactor = smoothstep(-1.0, 1.0, vPosition.z / 40.0);
           color = mix(color * 0.7, color, depthFactor);
           
           // Soft opacity for dreamy effect
-          float alpha = nebula * 0.6 + 0.3;
+          float alpha = nebula * 0.35 + 0.15;
           
           gl_FragColor = vec4(color, alpha);
         }

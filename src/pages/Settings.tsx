@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { Github } from "lucide-react";
 import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,36 +10,21 @@ import { useAuth } from "@/lib/auth";
 import { useProgress, useUsername } from "@/hooks/useProgress";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="glass-panel space-y-4 rounded-2xl p-6">
+  <section className="glass-panel space-y-4 rounded-2xl p-6" aria-label={title}>
     <h2 className="text-xl font-bold">{title}</h2>
     {children}
   </section>
 );
 
 const Settings = () => {
-  const { user, isGuest, saveAccount, signIn, signOut } = useAuth();
-  const { stats, reset } = useProgress();
+  const { user, isGuest, linkGitHub, signInWithGitHub, signOut } = useAuth();
+  const { stats, resetAll } = useProgress();
   const rename = useUsername();
   const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const github = user?.identities?.find((i) => i.provider === "github")?.identity_data;
 
-  const attempt = (fn: () => Promise<unknown>, success: string) => async (e?: FormEvent) => {
-    e?.preventDefault();
-    setBusy(true);
-    try {
-      await fn();
-      toast.success(success);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const withCredentials = (fn: (email: string, password: string) => Promise<unknown>, success: string) => (e: FormEvent<HTMLFormElement>) => {
-    const f = new FormData(e.currentTarget);
-    attempt(() => fn(String(f.get("email")), String(f.get("password"))), success)(e);
-  };
+  const attempt = (fn: () => Promise<unknown>) => () => fn().catch((e: Error) => toast.error(e.message));
 
   return (
     <PageShell title="Account" width="max-w-2xl">
@@ -48,7 +35,7 @@ const Settings = () => {
             onSubmit={(e) => {
               e.preventDefault();
               rename.mutate(name.trim(), {
-                onSuccess: () => { toast.success("Name updated"); setName(""); },
+                onSuccess: () => { toast.success("Name saved"); setName(""); },
                 onError: (err) => toast.error(err.message),
               });
             }}
@@ -57,51 +44,53 @@ const Settings = () => {
             <Input id="username" value={name} onChange={(e) => setName(e.target.value)} placeholder={stats.username} maxLength={20} />
             <Button type="submit" disabled={!name.trim() || rename.isPending}>Save name</Button>
           </form>
-          <p className="text-sm text-muted-foreground">Shown on the leaderboard. 3–20 letters, numbers, _ or -.</p>
+          <p className="text-sm text-muted-foreground">
+            Shown on the leaderboard and your <Link className="underline" to={`/u/${stats.username}`}>public profile</Link>. 3–20 letters, numbers, _ or -.
+          </p>
         </Section>
 
         {isGuest ? (
-          <>
-            <Section title="Keep your progress">
-              <p className="text-sm text-muted-foreground">
-                You're exploring as a guest, so your progress lives in this browser's session. Add an email and password to keep it and sign in anywhere.
-              </p>
-              <form className="space-y-3" onSubmit={withCredentials(saveAccount, "Account saved. You can now sign in anywhere.")}>
-                <Label htmlFor="save-email">Email</Label>
-                <Input id="save-email" name="email" type="email" autoComplete="email" required />
-                <Label htmlFor="save-password">Password</Label>
-                <Input id="save-password" name="password" type="password" autoComplete="new-password" minLength={8} required />
-                <Button type="submit" disabled={busy}>Save account</Button>
-              </form>
-            </Section>
-            <Section title="Already have an account?">
-              <p className="text-sm text-muted-foreground">Signing in switches to that account. Progress made as a guest stays behind.</p>
-              <form className="space-y-3" onSubmit={withCredentials(signIn, "Signed in")}>
-                <Label htmlFor="signin-email">Email</Label>
-                <Input id="signin-email" name="email" type="email" autoComplete="email" required />
-                <Label htmlFor="signin-password">Password</Label>
-                <Input id="signin-password" name="password" type="password" autoComplete="current-password" required />
-                <Button type="submit" variant="outline" disabled={busy}>Sign in</Button>
-              </form>
-            </Section>
-          </>
+          <Section title="Keep your progress">
+            <p className="text-sm text-muted-foreground">
+              You're exploring as a guest. Your progress is saved, but only this browser can get back to it.
+              Connect GitHub to keep it and pick up on any device.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={attempt(linkGitHub)}><Github className="mr-2 h-4 w-4" />Connect GitHub</Button>
+              <Button variant="outline" onClick={attempt(signInWithGitHub)}>I already have an account</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Signing in to an existing account switches to it. This guest's progress stays behind.</p>
+          </Section>
         ) : (
           <Section title="Signed in">
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
-            <Button variant="outline" onClick={() => attempt(signOut, "Signed out")()} disabled={busy}>Sign out</Button>
+            <p className="text-sm">
+              {github?.user_name ? <>GitHub <span className="font-semibold">@{github.user_name}</span></> : user?.email}
+            </p>
+            <Button variant="outline" onClick={attempt(signOut)}>Sign out</Button>
           </Section>
         )}
 
         <Section title="Start over">
           <p className="text-sm text-muted-foreground">Clears every mastered skill and completed challenge on this account. This can't be undone.</p>
-          <Button
-            variant="destructive"
-            disabled={reset.isPending}
-            onClick={() => confirm("Reset all progress? This can't be undone.") &&
-              reset.mutate(undefined, { onSuccess: () => toast.success("Progress reset"), onError: (e) => toast.error(e.message) })}
-          >
-            Reset progress
-          </Button>
+          {confirmReset ? (
+            <div className="flex flex-wrap gap-3" role="alertdialog" aria-label="Confirm reset">
+              <Button
+                variant="destructive"
+                disabled={resetAll.isPending}
+                onClick={() =>
+                  resetAll.mutate(undefined, {
+                    onSuccess: () => { toast.success("Progress reset"); setConfirmReset(false); },
+                    onError: (e) => toast.error(e.message),
+                  })
+                }
+              >
+                Yes, reset everything
+              </Button>
+              <Button variant="outline" autoFocus onClick={() => setConfirmReset(false)}>Keep my progress</Button>
+            </div>
+          ) : (
+            <Button variant="outline" className="border-destructive/60 text-foreground" onClick={() => setConfirmReset(true)}>Reset progress</Button>
+          )}
         </Section>
       </div>
     </PageShell>

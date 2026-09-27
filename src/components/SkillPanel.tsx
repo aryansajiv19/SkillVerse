@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Check, Lock } from "lucide-react";
@@ -29,18 +30,26 @@ export const SkillPanel = ({
 );
 
 const PanelBody = ({ skill }: { skill: SkillState }) => {
-  const { mastered, doneChallenges, unmaster } = useProgress();
+  const { mastered, doneChallenges, resetSkill } = useProgress();
+  const [confirming, setConfirming] = useState(false);
+  // Everything that would reset with this skill: mastered skills that (transitively) require it.
+  const dependents = (() => {
+    const out = new Set<string>();
+    const walk = (id: string) => unlocksOf(id).forEach((s) => !out.has(s.id) && mastered.has(s.id) && (out.add(s.id), walk(s.id)));
+    walk(skill.id);
+    return [...out].map((id) => skillById.get(id)!.name);
+  })();
   const track = trackById.get(skill.track)!;
   const extras = challengesForSkill(skill.id).filter((c) => c.type !== "quiz");
   const missing = skill.requires.filter((r) => !mastered.has(r));
 
   const reset = () =>
-    unmaster.mutate(skill.id, {
-      onSuccess: () =>
-        toast(`${skill.name} reset`, {
+    resetSkill.mutate(skill.id, {
+      onSuccess: (ids) =>
+        toast(`${ids.length > 1 ? `${ids.length} skills` : skill.name} reset`, {
           description: "Take the skill check again whenever you're ready.",
         }),
-      onError: (e) => toast.error(e.message),
+      onError: (e: Error) => toast.error(e.message),
     });
 
   return (
@@ -129,19 +138,26 @@ const PanelBody = ({ skill }: { skill: SkillState }) => {
         ) : skill.mastered ? (
           <>
             <p className="text-sm">You've mastered {skill.name}.</p>
-            <div className="flex gap-3">
-              <Button asChild variant="outline" className="flex-1">
-                <Link to={`/learn?skill=${skill.id}`}>Practice</Link>
-              </Button>
-              <Button
-                variant="ghost"
-                className="flex-1 text-muted-foreground"
-                onClick={reset}
-                disabled={unmaster.isPending}
-              >
-                Reset skill
-              </Button>
-            </div>
+            {confirming ? (
+              <div className="space-y-3 rounded-xl border border-destructive/40 p-4" role="alertdialog" aria-labelledby="reset-q">
+                <p id="reset-q" className="text-sm">
+                  Reset {skill.name}{dependents.length ? ` and ${dependents.join(", ")}, which build on it` : ""}? Your XP for them goes too.
+                </p>
+                <div className="flex gap-3">
+                  <Button variant="destructive" className="flex-1" onClick={reset} disabled={resetSkill.isPending}>Reset</Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setConfirming(false)} autoFocus>Keep it</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <Button asChild variant="outline" className="flex-1">
+                  <Link to={`/learn?skill=${skill.id}`}>Practice</Link>
+                </Button>
+                <Button variant="ghost" className="flex-1 text-muted-foreground" onClick={() => setConfirming(true)}>
+                  Reset skill
+                </Button>
+              </div>
+            )}
           </>
         ) : (
           <>

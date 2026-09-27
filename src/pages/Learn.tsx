@@ -10,7 +10,7 @@ import { PlanetDebugger } from "@/components/games/PlanetDebugger";
 import { Button } from "@/components/ui/button";
 import { useProgress } from "@/hooks/useProgress";
 import { skillById, trackById, tracks, unlocksOf } from "@/content/skills";
-import { challengeById, challengesForSkill, checkIdFor, SKILL_MASTERY_XP, type Challenge } from "@/content/challenges";
+import { challengeById, challengesForSkill, checkIdFor, type Challenge } from "@/content/challenges";
 import { cheatSheets } from "@/content/cheatsheets";
 
 const icons = { quiz: Star, code: Code, game: Gamepad2 };
@@ -44,7 +44,7 @@ const PickSkill = () => {
                   <Link to={`/learn?skill=${s.id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-card/60">
                     <span className={s.unlocked ? "" : "text-muted-foreground"}>{s.name}</span>
                     <span className="text-sm text-muted-foreground">
-                      {s.mastered ? <Check className="h-4 w-4 text-[hsl(var(--glow-completed))]" aria-label="Mastered" /> : !s.unlocked ? <Lock className="h-4 w-4" aria-label="Locked" /> : `${challengesForSkill(s.id).length} challenges`}
+                      {s.mastered ? <Check className="h-4 w-4 text-[hsl(var(--glow-completed))]" aria-label="Mastered" /> : !s.unlocked ? <Lock className="h-4 w-4" aria-label="Locked" /> : `${challengesForSkill(s.id).length} challenge${challengesForSkill(s.id).length === 1 ? "" : "s"}`}
                     </span>
                   </Link>
                 </li>
@@ -108,36 +108,35 @@ const SkillView = ({ skillId, onOpen }: { skillId: string; onOpen: (id: string) 
 };
 
 const ChallengeView = ({ challenge, onBack }: { challenge: Challenge; onBack: () => void }) => {
-  const { skills, doneChallenges, completeChallenge, passSkillCheck } = useProgress();
-  const [mastered, setMastered] = useState(false);
+  const { skills, loading, doneChallenges, completeChallenge, submitQuiz } = useProgress();
+  // Snapshot of mastery before this attempt, so "newly unlocked" is computed against it.
+  const [celebrate, setCelebrate] = useState<{ xp: number; before: Set<string> } | null>(null);
   const skill = skills.find((s) => s.id === challenge.skillId)!;
-  const isCheck = challenge.id === checkIdFor(skill.id);
 
-  if (!skill.unlocked) return <PageShell title={challenge.title}><Button onClick={onBack}>This skill is locked. Go back</Button></PageShell>;
+  if (loading) return <PageShell title={skill.name}><p className="text-muted-foreground">Loading your progress…</p></PageShell>;
+  if (!skill.unlocked && !celebrate)
+    return <PageShell title={challenge.title}><Button onClick={onBack}>This skill is locked. Go back</Button></PageShell>;
 
-  const pass = () => {
-    if (isCheck) {
-      passSkillCheck.mutate(skill.id, {
-        onSuccess: () => {
-          setMastered(true);
-          toast.success(`${skill.name} mastered`, { description: `+${SKILL_MASTERY_XP + challenge.xpReward} XP` });
-        },
-        onError: (e) => toast.error("Couldn't save your progress", { description: e.message }),
-      });
-    } else {
-      completeChallenge.mutate(challenge.id, {
-        onSuccess: () => toast.success(`${challenge.title} complete`, { description: `+${challenge.xpReward} XP` }),
-        onError: (e) => toast.error("Couldn't save your progress", { description: e.message }),
-      });
-    }
-  };
+  const saved = (xp: number, what: string) =>
+    xp > 0 ? toast.success(`${what}`, { description: `+${xp} XP` }) : toast(`${what}`, { description: "Already completed, so no new XP." });
+  const failed = (e: Error) => toast.error("Couldn't save your progress", { description: e.message });
 
-  if (mastered) {
-    const unlocked = unlocksOf(skill.id).filter((s) => s.requires.every((r) => r === skill.id || skills.find((x) => x.id === r)?.mastered));
+  if (celebrate) {
+    const unlocked = unlocksOf(skill.id).filter(
+      (s) => !celebrate.before.has(s.id) && s.requires.every((r) => r === skill.id || celebrate.before.has(r)),
+    );
+    const first = celebrate.xp > 0;
     return (
-      <PageShell title={`${skill.name} is lit.`} subtitle={unlocked.length ? `New stars unlocked: ${unlocked.map((s) => s.name).join(", ")}.` : "Keep going to light up the rest of the constellation."}>
+      <PageShell
+        title={first ? `${skill.name} is lit.` : `${skill.name} is still lit.`}
+        subtitle={
+          !first ? "You'd already mastered this skill, so there's no new XP. Nice refresher, though."
+          : unlocked.length ? `+${celebrate.xp} XP. New stars unlocked: ${unlocked.map((s) => s.name).join(", ")}.`
+          : `+${celebrate.xp} XP. Keep going to light up the rest of the constellation.`
+        }
+      >
         <div className="flex flex-wrap gap-3">
-          <Button asChild size="lg"><Link to="/">Back to the galaxy</Link></Button>
+          <Button asChild size="lg"><Link to={first ? `/?lit=${skill.id}` : "/"}>Back to the galaxy</Link></Button>
           {unlocked[0] && <Button asChild size="lg" variant="outline"><Link to={`/learn?skill=${unlocked[0].id}`}>Start {unlocked[0].name}</Link></Button>}
         </div>
       </PageShell>
@@ -147,9 +146,29 @@ const ChallengeView = ({ challenge, onBack }: { challenge: Challenge; onBack: ()
   return (
     <PageShell title={skill.name} width="max-w-3xl">
       <Button variant="ghost" onClick={onBack} className="mb-4 -ml-3 text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" />{skill.name} challenges</Button>
-      {challenge.type === "quiz" && <QuizChallenge challenge={challenge} onPass={pass} />}
-      {challenge.type === "code" && <CodeEditor challenge={challenge} done={doneChallenges.has(challenge.id)} onPass={pass} />}
-      {challenge.type === "game" && <PlanetDebugger challenge={challenge} onPass={pass} />}
+      {challenge.type === "quiz" && (
+        <QuizChallenge
+          challenge={challenge}
+          onSubmit={(answers) => submitQuiz.mutateAsync({ challengeId: challenge.id, answers })}
+          onPassed={(r) => {
+            if (r.mastered) setCelebrate({ xp: r.xp_awarded, before: new Set(skills.filter((s) => s.mastered).map((s) => s.id)) });
+            else saved(r.xp_awarded, `${challenge.title} passed`);
+          }}
+        />
+      )}
+      {challenge.type === "code" && (
+        <CodeEditor
+          challenge={challenge}
+          done={doneChallenges.has(challenge.id)}
+          onPass={() => completeChallenge.mutate(challenge.id, { onSuccess: (r) => saved(r.xpAwarded ? challenge.xpReward : 0, `${challenge.title} complete`), onError: failed })}
+        />
+      )}
+      {challenge.type === "game" && (
+        <PlanetDebugger
+          challenge={challenge}
+          onPass={() => completeChallenge.mutate(challenge.id, { onSuccess: (r) => saved(r.xpAwarded ? challenge.xpReward : 0, `${challenge.title} complete`), onError: failed })}
+        />
+      )}
     </PageShell>
   );
 };
