@@ -36,11 +36,13 @@ All colors MUST be HSL.
     --accent-foreground: 232 59% 10%;
 
     --destructive: 0 80% 60%;
-    --destructive-foreground: 0 0% 100%;
+    /* navy on the coral red, like the inverted primary button: 4.97:1 (white was 3.8:1) */
+    --destructive-foreground: 232 59% 10%;
 
     /* Borders with cosmic glow */
     --border: 232 35% 27%;
-    --input: 232 35% 22%;
+    /* input and outline-button edges: 3:1 against card and background (WCAG 1.4.11) */
+    --input: 232 25% 48%;
     --ring: 190 90% 60%;
 
     --radius: 0.75rem;
@@ -107,5 +109,39 @@ All colors MUST be HSL.
   
   .skill-glow-locked {
     filter: drop-shadow(0 0 8px hsl(var(--glow-locked)));
+  }
+}
+
+/* App chrome (src/components/Navigation.tsx). */
+@layer base {
+  :root {
+    /* Height of the phone tab bar, 0 when there is none. Anything fixed to the bottom of the
+       viewport (tutor launcher, galaxy HUD) should add it to its offset, for example
+       bottom-[calc(var(--bottom-bar-height)_+_1.5rem)]. */
+    --bottom-bar-height: 0px;
+  }
+
+  @media (max-width: 639px) {
+    :root {
+      --bottom-bar-height: calc(3.5rem + env(safe-area-inset-bottom));
+    }
+  }
+
+  html {
+    /* keep focused and anchored elements clear of the fixed header and tab bar */
+    scroll-padding-top: 5.5rem;
+    scroll-padding-bottom: calc(var(--bottom-bar-height) + 1rem);
+  }
+
+  /* Fallback focus ring for anything that doesn't style its own. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
