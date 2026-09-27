@@ -1,7 +1,7 @@
 // All reads and writes of learning progress. Writes go through RLS-checked inserts
 // (code challenges, games) or server functions (quizzes, resets); XP and streaks are
 // computed in Postgres and read back from the leaderboard view.
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
@@ -153,6 +153,7 @@ export const checkAnswer = async (challengeId: string, index: number, answer: st
 export const useLeaderboard = (limit = 50) => {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const [live, setLive] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -163,14 +164,15 @@ export const useLeaderboard = (limit = 50) => {
         clearTimeout(timer);
         timer = setTimeout(() => qc.invalidateQueries({ queryKey: ["leaderboard"] }), 1500);
       })
-      .subscribe();
+      .subscribe((status) => setLive(status === "SUBSCRIBED"));
     return () => {
       clearTimeout(timer);
+      setLive(false);
       supabase.removeChannel(channel);
     };
-  }, [user, qc]);
+  }, [user, qc, limit]);
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["leaderboard", limit],
     enabled: !!user,
     queryFn: async () => {
@@ -185,6 +187,8 @@ export const useLeaderboard = (limit = 50) => {
       return data;
     },
   });
+  /** true while the Realtime subscription is connected */
+  return { ...query, live };
 };
 
 /** A public profile by username: stats + mastery + activity dates. */
