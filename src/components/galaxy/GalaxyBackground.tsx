@@ -3,22 +3,28 @@
  * High-performance cosmic background with stars and nebula
  */
 
-import { useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { NebulaMaterial } from "./NebulaShader";
 
 interface GalaxyBackgroundProps {
-  mousePosition: { x: number; y: number };
   starCount?: number;
 }
 
-export const GalaxyBackground = ({ 
-  mousePosition, 
-  starCount = 8000 
-}: GalaxyBackgroundProps) => {
+export const GalaxyBackground = ({ starCount = 8000 }: GalaxyBackgroundProps) => {
   const nebulaRef = useRef<NebulaMaterial>(null);
   const starsRef = useRef<THREE.Points>(null);
+
+  // Pointer position (0..1) for parallax. A ref, not state: it changes every frame.
+  const pointer = useRef({ x: 0.5, y: 0.5 });
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      pointer.current = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
 
   // Smooth mouse tracking with parallax
   const smoothMouse = useRef({ x: 0, y: 0 });
@@ -73,15 +79,17 @@ export const GalaxyBackground = ({
   }, [starCount]);
 
   // Animation loop
-  useFrame((state, delta) => {
+  useFrame((state, frameDelta) => {
+    // After a paused (hidden) tab resumes, the first delta covers the whole pause.
+    const delta = Math.min(frameDelta, 0.1);
     // Update nebula shader time (slow drift)
     if (nebulaRef.current) {
       nebulaRef.current.uniforms.time.value += delta * 0.2;
     }
 
     // Smooth mouse interpolation with throttle
-    smoothMouse.current.x += (mousePosition.x - 0.5 - smoothMouse.current.x) * 0.02;
-    smoothMouse.current.y += (mousePosition.y - 0.5 - smoothMouse.current.y) * 0.02;
+    smoothMouse.current.x += (pointer.current.x - 0.5 - smoothMouse.current.x) * 0.02;
+    smoothMouse.current.y += (pointer.current.y - 0.5 - smoothMouse.current.y) * 0.02;
 
     // Parallax layers: nebula shifts most, planet medium, stars least
     if (nebulaLayerRef.current) {

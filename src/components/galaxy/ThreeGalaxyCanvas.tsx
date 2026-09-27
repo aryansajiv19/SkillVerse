@@ -1,20 +1,31 @@
 /**
- * ThreeGalaxyCanvas - Main R3F Canvas wrapper
- * Sets up the Three.js scene with optimized settings
+ * ThreeGalaxyCanvas - Main R3F Canvas wrapper. Transparent: the page paints the sky gradient
+ * underneath, so nothing shifts while three.js loads.
  */
 
+import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { GalaxyBackground } from "./GalaxyBackground";
+import { useReducedMotion } from "@/components/map/useReducedMotion";
+import { cn } from "@/lib/utils";
 
-interface ThreeGalaxyCanvasProps {
-  mousePosition: { x: number; y: number };
-}
+const useTabHidden = () => {
+  const [hidden, setHidden] = useState(() => typeof document !== "undefined" && document.hidden);
+  useEffect(() => {
+    const onChange = () => setHidden(document.hidden);
+    document.addEventListener("visibilitychange", onChange);
+    return () => document.removeEventListener("visibilitychange", onChange);
+  }, []);
+  return hidden;
+};
 
-const reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+export const ThreeGalaxyCanvas = () => {
+  const reduced = useReducedMotion();
+  const hidden = useTabHidden();
+  const [ready, setReady] = useState(false);
 
-export const ThreeGalaxyCanvas = ({ mousePosition }: ThreeGalaxyCanvasProps) => {
   return (
-    <div className="fixed inset-0 -z-10">
+    <div aria-hidden className={cn("fixed inset-0 -z-10 transition-opacity duration-700", ready ? "opacity-100" : "opacity-0")}>
       <Canvas
         camera={{ position: [0, 0, 5], fov: 70 }}
         gl={{
@@ -23,12 +34,11 @@ export const ThreeGalaxyCanvas = ({ mousePosition }: ThreeGalaxyCanvasProps) => 
           powerPreference: "high-performance",
         }}
         dpr={[1, 2]}
-        frameloop={reducedMotion ? "demand" : "always"}
-        style={{
-          background: "radial-gradient(ellipse at 50% 40%, hsl(232, 55%, 13%) 0%, hsl(232, 60%, 8%) 45%, hsl(235, 70%, 4%) 100%)",
-        }}
+        // Stop rendering in background tabs; with reduced motion, draw only when something changes.
+        frameloop={hidden ? "never" : reduced ? "demand" : "always"}
+        onCreated={() => setReady(true)}
       >
-        <GalaxyBackground mousePosition={mousePosition} starCount={12000} />
+        <GalaxyBackground starCount={12000} />
       </Canvas>
     </div>
   );
