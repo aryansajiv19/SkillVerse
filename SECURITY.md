@@ -25,7 +25,8 @@ What we protect, in order:
 
 1. **Other people's accounts and progress.** Nobody can write, delete or take over another player's data.
 2. **Private data.** The quiz answer key, rate-limit state and account details stay server-side.
-3. **Service health.** The database and the AI tutor's free Gemini quota can't be exhausted by one account.
+3. **Service health.** No single request is expensive, and one account can't use up the AI tutor's free Gemini
+   quota.
 4. **Leaderboard integrity**, as far as a public, guest-first learning app allows (see trade-offs).
 
 Out of scope: the Supabase and Vercel platforms themselves, and leaked owner or `service_role` credentials.
@@ -49,6 +50,9 @@ Out of scope: the Supabase and Vercel platforms themselves, and leaked owner or 
   Visitors without a session can call no RPC at all.
 - **Rate limits and input bounds.** Per-account fixed windows (`PT429`, HTTP 429): 600 answer checks and 120 quiz
   submissions an hour, 40 tutor messages an hour. Answers are capped at 200 characters and 50 per submission.
+- **Bounded reads.** Players can filter and sort the leaderboard view on any column, so `rank` is one window pass
+  over `player_stats`, not a count per row. Any read costs at most one pass over the table, and the top-N read stops
+  after N rows of the XP index.
 - **Views run as the caller** (`security_invoker`), and Realtime only publishes RLS-protected `player_stats`.
 - **Guest cleanup.** A nightly `pg_cron` job deletes guests older than 30 days that never earned XP.
 
@@ -59,11 +63,21 @@ pinned search paths, no anonymous RPC, …), so a new table or function that ski
 
 - JWT verification at the gateway, then the caller's own token spends one unit of their quota through
   `consume_ai_quota`. A publishable key alone gets a 401.
-- Validates the body (1 MB cap, shape checks, last 12 turns, 2,000 characters each) before spending quota.
+- Validates the body (1 MB cap, shape checks, last 12 turns, 2,000 characters each) before spending quota. The cap
+  counts bytes as they arrive, so a request without `Content-Length` (chunked, HTTP/2) can't make it buffer more.
 - The Gemini key is a function secret and never reaches the browser. Errors are logged server-side; callers get a
   generic message.
 - CORS allows the origin in `ALLOWED_ORIGIN` (default `*`). Auth is a bearer token, not a cookie, so CORS is not
   what stops cross-site abuse; setting it just keeps other sites' pages from using the tutor.
+
+### Auth
+
+- Guests and GitHub only. Email signup is off.
+- **Email confirmations stay on.** A guest can still add an email to its own account (`PUT /auth/v1/user`), and
+  Supabase Auth allows that whether or not the email provider is enabled. With confirmations off, the address counts
+  as verified at once, so when its real owner later uses "Sign in with GitHub", Supabase links their GitHub identity
+  into the attacker's account (pre-account takeover). With confirmations on, the change waits for a link sent to that
+  mailbox.
 
 ### Client
 
@@ -117,9 +131,9 @@ No money is at risk on the free tier.
 
 For the hosted Supabase project (the dashboard doesn't read `config.toml`):
 
-- Auth → Providers: **Email disabled** (with confirmations off, anyone could register an address they don't own,
-  which invites pre-account-takeover once GitHub linking matches emails). Anonymous sign-ins on, manual linking on,
-  GitHub on.
+- Auth → Providers → Email: **Confirm email on** (see Auth above). This is the setting that stops a guest claiming
+  an address it doesn't own; turning the provider off does not. Email signups off.
+- Auth → Providers: anonymous sign-ins on, manual linking on, GitHub on.
 - Auth → URL configuration: site URL = the production URL. Add preview URLs to the allow-list only if needed.
 - Optional: Turnstile or hCaptcha for anonymous sign-ins.
 - Function secrets: `GEMINI_API_KEY`, and `ALLOWED_ORIGIN` = the production origin.

@@ -21,6 +21,26 @@ const MAX_BODY = 1_000_000;
 
 type Msg = { role: "user" | "assistant"; content: string };
 
+/** The body as text, or null once it passes MAX_BODY. Bytes are counted as they arrive, so a body
+ * without Content-Length (chunked, HTTP/2) is cut off at the cap instead of buffered whole. */
+const readBody = async (req: Request): Promise<string | null> => {
+  if (Number(req.headers.get("content-length") ?? 0) > MAX_BODY) return null;
+  if (!req.body) return "";
+  const reader = req.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  let size = 0;
+  for (let r = await reader.read(); !r.done; r = await reader.read()) {
+    size += r.value.byteLength;
+    if (size > MAX_BODY) {
+      await reader.cancel();
+      return null;
+    }
+    text += decoder.decode(r.value, { stream: true });
+  }
+  return text + decoder.decode();
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json(405, { error: "Use POST" });
@@ -28,11 +48,10 @@ Deno.serve(async (req) => {
   const key = Deno.env.get("GEMINI_API_KEY");
   if (!key) return json(503, { error: "The AI tutor isn't configured on this deployment." });
 
-  if (Number(req.headers.get("content-length") ?? 0) > MAX_BODY) return json(413, { error: "This conversation is too long. Start a new one." });
   let body: { messages?: unknown; context?: unknown };
   try {
-    const text = await req.text();
-    if (text.length > MAX_BODY) return json(413, { error: "This conversation is too long. Start a new one." });
+    const text = await readBody(req);
+    if (text === null) return json(413, { error: "This conversation is too long. Start a new one." });
     body = JSON.parse(text);
   } catch {
     return json(400, { error: "Invalid JSON" });

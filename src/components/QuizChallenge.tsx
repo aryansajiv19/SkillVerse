@@ -106,6 +106,7 @@ export const QuizChallenge = ({ challenge, onSubmit, onPassed }: Props) => {
         <Input
           autoFocus
           value={text}
+          maxLength={200}
           readOnly={!!feedback}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (feedback ? next() : check())}

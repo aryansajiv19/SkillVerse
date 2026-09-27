@@ -1,7 +1,7 @@
 -- Security invariants for the whole schema, plus regressions from the security review.
 -- The invariants fail when a new table, view or function is added without locking it down.
 begin;
-select plan(18);
+select plan(19);
 
 -- ── Invariants
 select is(
@@ -60,6 +60,18 @@ select is(
         join pg_class c on c.oid = format('%I.%I', t.schemaname, t.tablename)::regclass
         where pubname = 'supabase_realtime' and not c.relrowsecurity),
   '{}'::text[], 'Realtime only publishes tables that RLS protects');
+
+-- Players can filter and sort on any leaderboard column, so rank must not be a count per row.
+create function pg_temp.plan(q text) returns text language plpgsql as $$
+declare
+  l text;
+  p text := '';
+begin
+  for l in execute 'explain ' || q loop p := p || l || E'\n'; end loop;
+  return p;
+end $$;
+select unalike(pg_temp.plan('select user_id from public.leaderboard where rank = 0'), '%SubPlan%',
+  'filtering on rank is one pass over the players, not a count per player');
 
 select col_hasnt_default('public', 'challenges', 'kind', 'challenge kind fails closed: the catalog must set it');
 
