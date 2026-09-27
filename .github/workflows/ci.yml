@@ -22,6 +22,35 @@ jobs:
       - name: Catalog SQL is in sync with src/content
         run: npm run db:catalog && git diff --exit-code supabase/catalog.sql
       - run: npm run build
+      - name: No quiz answers in the bundle
+        run: npm run check:bundle
+
+  e2e:
+    name: End-to-end and accessibility tests (Playwright + axe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start -x studio,imgproxy,vector,logflare,storage-api,supavisor,mailpit
+      - name: Point the app at the local Supabase
+        run: |
+          supabase status -o env | sed -n 's/^API_URL=/VITE_SUPABASE_URL=/p; s/^PUBLISHABLE_KEY=/VITE_SUPABASE_PUBLISHABLE_KEY=/p' > .env.local
+          grep -q '^VITE_SUPABASE_URL=' .env.local && grep -q '^VITE_SUPABASE_PUBLISHABLE_KEY=' .env.local
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
 
   database:
     name: Database security tests (pgTAP)
