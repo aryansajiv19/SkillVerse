@@ -235,14 +235,15 @@ const scale: Item[] = [
     src: [STATS],
   },
   {
-    title: "Rank is an index count",
+    title: "Rank is one pass, never per row",
     body: (
       <>
-        A player's rank is one plus the number of players with more XP, counted on the <C>(xp desc, user_id)</C> index.
-        Reading the top 50 walks the index instead of ranking the whole table.
+        Rank comes from a single <C>rank()</C> window over <C>player_stats</C>, and the top-50 read stops after 50 rows
+        of the <C>(xp desc, user_id)</C> index. An earlier version counted "players with more XP" per row, which let one
+        request that filters on rank do quadratic work; the security review replaced it.
       </>
     ),
-    src: [STATS],
+    src: [STATS, "supabase/migrations/20260927170053_security_hardening.sql"],
   },
   {
     title: "Bulk resets refresh once",
