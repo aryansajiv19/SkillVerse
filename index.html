@@ -2,13 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>SkillVerse: a star map of what to learn next</title>
     <meta name="description" content="Learn web dev, backend, data & AI and DevOps by lighting up stars on a skill map. Quizzes, code challenges that really run, streaks and a live leaderboard." />
+    <meta name="theme-color" content="#0a0e29" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Social cards. Crawlers need absolute URLs: prefix og:image / twitter:image with the
+         production origin once it exists (and add og:url). Regenerate the image with node scripts/og-image.ts. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SkillVerse" />
     <meta property="og:title" content="SkillVerse" />
     <meta property="og:description" content="A star map of what to learn next." />
-    <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#0a0e27" />
+    <meta property="og:image" content="/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SkillVerse: a star map of what to learn next, with four constellations of skills." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SkillVerse" />
+    <meta name="twitter:description" content="A star map of what to learn next." />
+    <meta name="twitter:image" content="/og.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />

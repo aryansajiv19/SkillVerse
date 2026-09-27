@@ -16,6 +16,7 @@ const About = lazy(() => import("./pages/About"));
 const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AIAssistant = lazy(() => import("./components/AIAssistant").then((m) => ({ default: m.AIAssistant })));
+const CommandPalette = lazy(() => import("./components/CommandPalette").then((m) => ({ default: m.CommandPalette })));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
@@ -62,6 +63,12 @@ const App = () => (
       <TooltipProvider>
         <Toaster position="top-center" />
         <BrowserRouter>
+          <a
+            href="#main"
+            className="sr-only rounded-md bg-foreground font-medium text-background focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:px-4 focus:py-2"
+          >
+            Skip to content
+          </a>
           <ErrorBoundary>
             <Gate>
               <Suspense fallback={<div className="min-h-screen" aria-busy="true" aria-label="Loading" />}>
@@ -75,6 +82,10 @@ const App = () => (
                   <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+              </Suspense>
+              {/* Chrome loads in parallel with the page and never blanks it while loading */}
+              <Suspense fallback={null}>
+                <CommandPalette />
                 <AIAssistant />
               </Suspense>
             </Gate>
