@@ -34,3 +34,7 @@ supabase/.branches
 
 # local tooling
 .claude/
+
+# playwright
+/test-results
+/playwright-report
