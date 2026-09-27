@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { dismissIntro, expectDashboardXp, intro, masterSkill, skillPanel, skipIntro, star, toast } from "./helpers";
+import { askToReset, confirmReset, dismissIntro, expectDashboardXp, intro, masterSkill, skipIntro, star, toast } from "./helpers";
 
 test("first visit shows the intro, and dismissing it reveals the map", async ({ page }) => {
   await page.goto("/");
@@ -22,11 +22,9 @@ test("resetting HTML from its panel also resets CSS, which builds on it", async 
 
   await page.goto("/");
   await star(page, "html", "mastered").click();
-  const panel = skillPanel(page, "html");
-  await panel.getByRole("button", { name: "Reset skill" }).click();
-  const confirm = panel.getByRole("alertdialog");
+  const confirm = await askToReset(page, "html");
   await expect(confirm).toContainText("CSS");
-  await confirm.getByRole("button", { name: "Reset", exact: true }).click();
+  await confirmReset(confirm);
   await expect(toast(page, "2 skills reset")).toBeVisible();
 
   await page.keyboard.press("Escape");

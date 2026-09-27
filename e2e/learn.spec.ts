@@ -1,11 +1,17 @@
 import { expect, test } from "@playwright/test";
 import {
+  backToGalaxy,
   celebration,
+  celebrationSummary,
+  challengeUrl,
   claimButton,
   codeEditor,
   expectDashboardXp,
   masterSkill,
   questionCount,
+  questionProgress,
+  quizScore,
+  retryQuiz,
   runTests,
   settled,
   skillCheckUrl,
@@ -23,12 +29,12 @@ test("passing the HTML skill check lights its star and unlocks CSS and JavaScrip
   await takeQuiz(page, "html-check");
 
   await expect(celebration(page, "html")).toBeVisible();
-  const summary = page.getByText("+130 XP");
+  const summary = celebrationSummary(page, 130);
   await expect(summary).toContainText(/unlocked/i);
   await expect(summary).toContainText("CSS");
   await expect(summary).toContainText("JavaScript");
 
-  await page.getByRole("link", { name: "Back to the galaxy" }).click();
+  await backToGalaxy(page);
   await expect(star(page, "html", "mastered")).toBeVisible();
   await expect(star(page, "css", "available")).toBeVisible();
   await expect(star(page, "javascript", "available")).toBeVisible();
@@ -39,9 +45,9 @@ test("failing a skill check offers another try and records nothing", async ({ pa
   await page.goto(skillCheckUrl("html"));
   await takeQuiz(page, "html-check", [0, 1]);
 
-  await expect(page.getByRole("heading", { name: `${total - 2}/${total} correct` })).toBeVisible();
-  await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.getByText(`Question 1 of ${total}`)).toBeVisible();
+  await expect(quizScore(page, total - 2, total)).toBeVisible();
+  await retryQuiz(page);
+  await expect(questionProgress(page, 1, total)).toBeVisible();
 
   await expectDashboardXp(page, 0);
   await page.goto("/");
@@ -51,7 +57,7 @@ test("failing a skill check offers another try and records nothing", async ({ pa
 
 test("code challenge: failing tests show what came back, passing code can be claimed for XP", async ({ page }) => {
   await masterSkill(page, "html"); // JavaScript needs HTML
-  await page.goto("/learn?skill=javascript&challenge=js-1");
+  await page.goto(challengeUrl("javascript", "js-1"));
 
   await codeEditor(page).fill("function add(a, b) {\n  return a - b;\n}\n");
   await runTests(page);

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { expectDashboardXp, expectDisplayName, masterSkill, myLeaderboardRow, rename, toast, uniqueName } from "./helpers";
+import { expectDashboardXp, expectDisplayName, masterSkill, myLeaderboardEntry, rename, toast, uniqueName } from "./helpers";
 
-test("the leaderboard lists the learner and the dashboard shows their XP", async ({ page }) => {
+test("the dashboard shows the learner's XP and the leaderboard ranks them", async ({ page }) => {
   const name = uniqueName();
   await rename(page, name);
   await expect(toast(page, "Name saved")).toBeVisible();
@@ -9,11 +9,8 @@ test("the leaderboard lists the learner and the dashboard shows their XP", async
 
   await expectDashboardXp(page, 130);
 
-  // ponytail: assumes fewer than 50 players tie or beat 130 XP (always true on CI's fresh database).
   await page.goto("/leaderboard");
-  const row = myLeaderboardRow(page);
-  await expect(row).toContainText(name);
-  await expect(row).toContainText("130");
+  await expect(myLeaderboardEntry(page, name, 130)).toBeVisible();
 });
 
 test("renaming works, and a name another learner has is rejected", async ({ page, browser, baseURL }) => {

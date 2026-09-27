@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 8086;
+const PORT = Number(process.env.E2E_PORT ?? 8086);
 const CI = !!process.env.CI;
 
 // Needs a running Supabase (local: `npx supabase start`) and .env.local pointing at it.

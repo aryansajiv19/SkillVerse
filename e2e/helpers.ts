@@ -1,6 +1,7 @@
-// Every selector the specs use lives here, so a UI redesign means editing this file, not the specs.
-// Selectors go by role, accessible name and visible text only.
-import { expect, type Page } from "@playwright/test";
+// Every locator the specs use lives here, so a UI redesign means editing this file, not the specs.
+// Specs do still assert on copy (toast text, test output, skill names), so a copy change can touch a spec.
+// Locators go by role, accessible name and visible text only.
+import { expect, type Locator, type Page } from "@playwright/test";
 import { buildCatalog } from "../scripts/catalog.ts";
 import { skillById } from "../src/content/skills.ts";
 import { checkIdFor, type QuizChallenge } from "../src/content/types.ts";
@@ -38,6 +39,11 @@ export const skipIntro = (page: Page) =>
 /** Waits until the page has finished loading this guest's progress. */
 export const settled = (page: Page) => page.waitForLoadState("networkidle");
 
+export const pageHeading = (page: Page) => page.getByRole("heading", { level: 1 });
+export const notFoundHeading = (page: Page) => page.getByRole("heading", { level: 1, name: "Lost in space" });
+/** The link out of the celebration and not-found pages. */
+export const backToGalaxy = (page: Page) => page.getByRole("link", { name: "Back to the galaxy" }).click();
+
 // ── Galaxy
 
 export const intro = (page: Page) => page.getByRole("heading", { name: "Learn by lighting up a galaxy." });
@@ -51,9 +57,17 @@ export const star = (page: Page, skillId: string, state: StarState) =>
 export const skillPanel = (page: Page, skillId: string) =>
   page.getByRole("dialog", { name: skillName(skillId), exact: true });
 
+/** Asks to reset a skill from its open panel and returns the confirmation. */
+export const askToReset = async (page: Page, skillId: string) => {
+  await skillPanel(page, skillId).getByRole("button", { name: "Reset skill" }).click();
+  return page.getByRole("alertdialog");
+};
+export const confirmReset = (confirm: Locator) => confirm.getByRole("button", { name: "Reset", exact: true }).click();
+
 // ── Quizzes
 
-export const skillCheckUrl = (skillId: string) => `/learn?skill=${skillId}&challenge=${checkIdFor(skillId)}`;
+export const challengeUrl = (skillId: string, challengeId: string) => `/learn?skill=${skillId}&challenge=${challengeId}`;
+export const skillCheckUrl = (skillId: string) => challengeUrl(skillId, checkIdFor(skillId));
 
 /** Answers every question through the UI. Questions whose index is in `wrong` get a wrong answer. */
 export const takeQuiz = async (page: Page, challengeId: string, wrong: number[] = []) => {
@@ -69,10 +83,18 @@ export const takeQuiz = async (page: Page, challengeId: string, wrong: number[] 
 };
 
 export const questionCount = (challengeId: string) => quizById(challengeId).questions.length;
+export const quizOptions = (page: Page) => page.getByRole("radiogroup");
+export const questionProgress = (page: Page, n: number, total: number) => page.getByText(`Question ${n} of ${total}`);
+/** The score shown when a quiz ends without a pass. */
+export const quizScore = (page: Page, correct: number, total: number) =>
+  page.getByRole("heading", { name: `${correct}/${total} correct` });
+export const retryQuiz = (page: Page) => page.getByRole("button", { name: "Try again" }).click();
 
 /** The "<skill> is lit." screen shown after passing a skill check. */
 export const celebration = (page: Page, skillId: string) =>
   page.getByRole("heading", { name: `${skillName(skillId)} is lit.`, exact: true });
+/** The celebration line with the XP earned and the stars it unlocked. */
+export const celebrationSummary = (page: Page, xp: number) => page.getByText(`+${xp} XP`);
 
 /** Masters a skill by passing its skill check through the UI. Its prerequisites must be mastered already. */
 export const masterSkill = async (page: Page, skillId: string) => {
@@ -103,9 +125,17 @@ export const expectDashboardXp = async (page: Page, xp: number) => {
   await expect(page.getByText("total XP", { exact: true }).locator("..")).toHaveText(new RegExp(`^${xp}\\s*total XP$`));
 };
 
-/** The leaderboard row the app marks as the current user. */
-export const myLeaderboardRow = (page: Page) =>
-  page.getByRole("row").filter({ has: page.getByText("you", { exact: true }) });
+/**
+ * Where the leaderboard shows the current user: their marked row (with name and XP) when they're in the
+ * top 50, otherwise the line under the table. Tests share one database, so either can be the right one.
+ */
+export const myLeaderboardEntry = (page: Page, name: string, xp: number) =>
+  page
+    .getByRole("row")
+    .filter({ has: page.getByText("you", { exact: true }) })
+    .filter({ hasText: name })
+    .filter({ has: page.getByRole("cell", { name: String(xp), exact: true }) })
+    .or(page.getByText(new RegExp(`^You're #\\d+ with ${xp} XP\\.$`)));
 
 /** Submits a new display name on the account page. Check the outcome with `toast`. */
 export const rename = async (page: Page, name: string) => {
