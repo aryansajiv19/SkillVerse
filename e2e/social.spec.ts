@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectDashboardXp, expectDisplayName, masterSkill, myLeaderboardEntry, rename, toast, uniqueName } from "./helpers";
+import { expectDashboardXp, expectDisplayName, masterSkill, myLeaderboardEntry, rename, toast, uniqueName, nameFieldMessage } from "./helpers";
 
 test("the dashboard shows the learner's XP and the leaderboard ranks them", async ({ page }) => {
   const name = uniqueName();
@@ -27,6 +27,6 @@ test("renaming works, and a name another learner has is rejected", async ({ page
   await other.close();
 
   await rename(page, taken);
-  await expect(toast(page, "That name is taken")).toBeVisible();
+  await expect(nameFieldMessage(page)).toHaveText("That name is taken");
   await expectDisplayName(page, mine);
 });

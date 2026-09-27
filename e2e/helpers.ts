@@ -105,7 +105,8 @@ export const masterSkill = async (page: Page, skillId: string) => {
 
 // ── Code challenges
 
-export const codeEditor = (page: Page) => page.getByRole("textbox", { name: "Code editor" });
+/** The code textarea is labelled by language, e.g. "JS editor". */
+export const codeEditor = (page: Page) => page.getByRole("textbox", { name: /editor$/i });
 export const runTests = (page: Page) => page.getByRole("button", { name: "Run tests" }).click();
 /** One line of test output, found by the test's label, e.g. "add(2, 3) → 5". */
 export const testResult = (page: Page, label: string) => page.getByRole("listitem").filter({ hasText: label });
@@ -153,3 +154,6 @@ export const expectDisplayName = async (page: Page, name: string) => {
 
 /** 3–20 chars of [A-Za-z0-9_-], unique per call. */
 export const uniqueName = () => `e2e_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+/** Inline validation shown under the display-name field on the Account page. */
+export const nameFieldMessage = (page: Page) => page.locator("#username-help");

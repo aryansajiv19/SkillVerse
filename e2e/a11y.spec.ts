@@ -16,17 +16,12 @@ const targets: Target[] = [
   { path: "/", label: "intro", ready: intro, firstVisit: true },
   { path: "/", label: "map", ready: (page) => star(page, "html", "available") },
   { path: "/learn", ready: pageHeading },
-  {
-    path: "/dashboard",
-    ready: pageHeading,
-    known: {
-      // Titles reach 3.36:1 and descriptions 1.99:1 against the navy background; AA needs 4.5:1.
-      "color-contrast": "unearned achievement cards are dimmed with opacity-40 (src/pages/Dashboard.tsx)",
-    },
-  },
+  { path: "/dashboard", ready: pageHeading },
   { path: "/leaderboard", ready: pageHeading },
   { path: "/settings", ready: pageHeading },
   { path: "/about", ready: pageHeading },
+  { path: "/u/nobody-by-this-name", label: "profile not found", ready: pageHeading },
+  { path: "/learn?skill=javascript&challenge=js-1", label: "code challenge", ready: pageHeading },
   { path: skillCheckUrl("html"), label: "skill check", ready: quizOptions },
 ];
 
