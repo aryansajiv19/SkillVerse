@@ -1,12 +1,20 @@
 -- Server-side grading.
 -- Quiz answers and explanations live in the `private` schema, which the Data API
--- can't read, so they never ship to the browser. Quizzes are graded in Postgres,
--- and passing a skill check masters the skill in the same transaction. Clients can
--- no longer write quiz completions or skill masteries directly.
+-- can't read, so the answer key is not in the browser bundle. check_answer reveals
+-- one question's answer as feedback after the learner answers it. Quizzes are graded
+-- in Postgres, and passing a skill check masters the skill in the same transaction.
+-- Clients can no longer write quiz completions or skill masteries directly.
+-- Feedback means a retake can use answers seen on an earlier try. That is deliberate;
+-- see "Quiz feedback" in SECURITY.md.
 
 -- ── Catalog: challenge kind (set by catalog.sql)
+-- The insert policy below trusts every non-quiz kind, so the column fails closed. A
+-- catalog loaded before this migration gets its skill checks marked as quizzes, and
+-- after that every catalog row must name its kind.
 alter table public.challenges
   add column kind text not null default 'code' check (kind in ('quiz', 'code', 'game'));
+update public.challenges set kind = 'quiz' where id = skill_id || '-check';
+alter table public.challenges alter column kind drop default;
 
 -- ── Answer key (rows come from catalog.sql)
 revoke all on schema private from public, anon, authenticated;
@@ -14,7 +22,8 @@ revoke all on schema private from public, anon, authenticated;
 create table private.quiz_answers (
   challenge_id text not null references public.challenges (id) on delete cascade,
   idx int not null check (idx >= 0),
-  accepted text[] not null check (cardinality(accepted) > 0), -- normalized; choice answers are the option index
+  -- normalized; choice answers are the option index. An empty accepted answer would pass blank submissions.
+  accepted text[] not null check (cardinality(accepted) > 0 and '' <> all (accepted)),
   explanation text not null,
   primary key (challenge_id, idx)
 );
@@ -79,6 +88,9 @@ declare
   v_key private.quiz_answers;
 begin
   perform private.require_user();
+  if length(p_answer) > 200 then
+    raise exception 'Answer too long' using errcode = '22001';
+  end if;
 
   select c.skill_id into v_skill from public.challenges c where c.id = p_challenge_id and c.kind = 'quiz';
   if v_skill is null then
@@ -117,6 +129,14 @@ declare
   v_mastered boolean := false;
   v_first boolean := false;
 begin
+  -- Separate checks: the length scan only runs on an array of sane size.
+  if cardinality(p_answers) > 50 then
+    raise exception 'Too many answers' using errcode = '22001';
+  end if;
+  if exists (select 1 from unnest(p_answers) a where length(a) > 200) then
+    raise exception 'Answer too long' using errcode = '22001';
+  end if;
+
   select c.skill_id, c.xp into v_skill, v_xp from public.challenges c where c.id = p_challenge_id and c.kind = 'quiz';
   if v_skill is null then
     raise exception 'Unknown quiz %', p_challenge_id using errcode = 'P0002';
@@ -191,6 +211,11 @@ grant select, delete on public.challenge_completions to authenticated;
 -- so clients can't backdate activity to fake a streak.
 grant insert (challenge_id) on public.challenge_completions to authenticated;
 grant select on public.leaderboard to authenticated;
+
+-- Functions in public are RPC endpoints, and new ones are executable by everyone.
+-- skill_unlocked is only needed by the insert policy above.
+revoke execute on function public.skill_unlocked(text) from public, anon;
+grant execute on function public.skill_unlocked(text) to authenticated;
 
 -- ── RPC: reset a skill. Also resets every skill that depends on it (transitively),
 -- so nothing is left "mastered but locked". Runs as the caller: RLS limits it to own rows.
