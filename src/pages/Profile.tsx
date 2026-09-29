@@ -44,7 +44,7 @@ const Profile = () => {
 
   if (isPending)
     return (
-      <PageShell title={username}>
+      <PageShell title={username} nameTitle>
         <div role="status" aria-busy="true" aria-label="Loading profile" className="space-y-10">
           <Skeleton className="h-20 max-w-3xl" />
           <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
@@ -57,7 +57,7 @@ const Profile = () => {
 
   if (error && data === undefined)
     return (
-      <PageShell title={username}>
+      <PageShell title={username} nameTitle>
         <LoadError what="this profile" error={error} onRetry={() => refetch()} />
       </PageShell>
     );
@@ -82,6 +82,7 @@ const Profile = () => {
   return (
     <PageShell
       title={stats.username}
+      nameTitle
       subtitle={
         firstStar
           ? `First star lit on ${new Date(firstStar).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`

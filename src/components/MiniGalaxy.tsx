@@ -46,7 +46,6 @@ export const MiniGalaxy = ({
           textAnchor={t.anchor}
           fontSize={4.5}
           fill={`hsl(${t.hue})`}
-          fillOpacity={0.6}
           className="font-display font-bold"
         >
           {t.constellation}

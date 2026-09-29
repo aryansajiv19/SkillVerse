@@ -3,10 +3,10 @@ import { activityCalendar, HEAT_LEVELS, HEAT_WEEKS, type HeatDay } from "@/lib/p
 import { cn } from "@/lib/utils";
 
 // One-hue ramp on the mastered gold, dim to bright. Checked against the panel surface:
-// lightness is monotone and the dimmest step clears 2.8:1, so a single completion is visible.
+// lightness is monotone and the dimmest step clears 3:1 against the panel and an empty day.
 const FILL = [
   "hsl(var(--foreground) / 0.07)",
-  "hsl(40 55% 30%)",
+  "hsl(40 55% 36%)",
   "hsl(42 70% 42%)",
   "hsl(44 85% 56%)",
   "hsl(var(--glow-completed))",
@@ -35,10 +35,11 @@ export const ActivityHeatmap = ({ timestamps, className }: { timestamps: string[
   const busiest = cal.weeks
     .flat()
     .reduce<HeatDay | null>((best, d) => (d && d.count > (best?.count ?? 0) ? d : best), null);
-  const label =
-    busiest && cal.activeDays > 1
+  const label = !busiest
+    ? `${summary}.`
+    : cal.activeDays > 1
       ? `${summary}. Busiest day: ${fullDate(busiest.date)}, with ${plural(busiest.count, "completion")}.`
-      : `${summary}.`;
+      : `${summary}: ${fullDate(busiest.date)}.`;
   // Week columns shrink to fit (about 10px cells on a phone); the day labels only show from sm up.
   // Tailwind needs literal class names, so 26 here is HEAT_WEEKS.
   const columns = "grid grid-cols-[repeat(26,minmax(0,1fr))] sm:grid-cols-[1.75rem_repeat(26,minmax(0,1fr))]";

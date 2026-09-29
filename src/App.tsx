@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, type ReactNode } from "react";
+import { Component, lazy, Suspense, useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
@@ -26,6 +26,18 @@ const Centered = ({ children }: { children: ReactNode }) => (
   </div>
 );
 
+/** Shown after a short delay, so a fast load doesn't flash it. */
+const Loading = ({ label }: { label: string }) => (
+  <Centered>
+    <div role="status" className="space-y-1 duration-300 animate-in fade-in-0 delay-300 fill-mode-both">
+      <p className="font-display text-2xl font-extrabold tracking-tight">
+        Skill<span className="text-[hsl(var(--glow-completed))]" aria-hidden>✦</span>Verse
+      </p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  </Centered>
+);
+
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
   static getDerivedStateFromError(error: Error) {
@@ -36,7 +48,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     return (
       <Centered>
         <h1 className="text-2xl font-bold">Something broke on this page</h1>
-        <p className="text-muted-foreground">{this.state.error.message}</p>
+        <p className="text-muted-foreground">Reload the page, or head back to the galaxy and try again.</p>
         <Button onClick={() => window.location.assign("/")}>Back to the galaxy</Button>
       </Centered>
     );
@@ -45,15 +57,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 const Gate = ({ children }: { children: ReactNode }) => {
   const { user, error, retry } = useAuth();
+  useEffect(() => {
+    if (error) console.error(error);
+  }, [error]);
   if (error)
     return (
       <Centered>
         <h1 className="text-2xl font-bold">Can't reach the SkillVerse server</h1>
-        <p className="text-muted-foreground">{error}</p>
+        <p className="text-muted-foreground">Check your connection, then try again.</p>
         <Button onClick={retry}>Try again</Button>
       </Centered>
     );
-  if (!user) return <div className="min-h-screen" aria-busy="true" aria-label="Loading" />;
+  if (!user) return <Loading label="Connecting…" />;
   return <>{children}</>;
 };
 
@@ -71,7 +86,7 @@ const App = () => (
           </a>
           <ErrorBoundary>
             <Gate>
-              <Suspense fallback={<div className="min-h-screen" aria-busy="true" aria-label="Loading" />}>
+              <Suspense fallback={<Loading label="Loading…" />}>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/learn" element={<Learn />} />

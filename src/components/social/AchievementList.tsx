@@ -9,13 +9,13 @@ export const AchievementList = ({ items, className }: { items: Achievement[]; cl
         <span
           aria-hidden
           className={cn(
-            "grid h-10 w-10 shrink-0 place-items-center rounded-full border text-lg",
+            "grid h-10 w-10 shrink-0 place-items-center rounded-full border",
             a.earned
               ? "border-[hsl(var(--glow-completed)/0.5)] bg-[hsl(var(--glow-completed)/0.12)] text-[hsl(var(--glow-completed))]"
               : "border-dashed border-muted-foreground/40 text-muted-foreground",
           )}
         >
-          {a.icon}
+          <a.icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-x-2 font-semibold">

@@ -76,6 +76,7 @@ export const CommandPalette = () => {
   const takeCheck = (s: SkillState) => go(`/learn?skill=${s.id}&challenge=${checkIdFor(s.id)}`);
 
   const highlighted = skills.find((s) => s.name === active);
+  const unlockAfter = (s: SkillState) => s.requires.filter((r) => !mastered.has(r)).map((r) => skillById.get(r)!.name).join(" and ");
   const pages = [
     ...navItems.map((p) => ({ ...p, keywords: pageKeywords[p.path] })),
     { path: "/about", icon: Blocks, label: "How it's built", keywords: ["about", "architecture", "source", "github", "stack"] },
@@ -115,8 +116,8 @@ export const CommandPalette = () => {
           <div className="relative">
             <CommandInput placeholder="Search skills, tracks and pages" className="pr-14" />
             <DialogClose
-              aria-label="Close search"
-              className="absolute right-3 top-1/2 grid min-h-8 min-w-8 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Esc: close search"
+              className="absolute right-3 top-1/2 grid min-h-11 min-w-11 sm:min-h-8 sm:min-w-8 -translate-y-1/2 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Kbd className="hidden sm:inline-flex">Esc</Kbd>
               <X className="h-4 w-4 sm:hidden" aria-hidden />
@@ -130,6 +131,7 @@ export const CommandPalette = () => {
               {tracks.map((t) => {
                 const own = skills.filter((s) => s.track === t.id);
                 const next = own.find((s) => s.unlocked && !s.mastered);
+                const done = own.every((s) => s.mastered);
                 return (
                   <CommandItem
                     key={t.id}
@@ -142,7 +144,7 @@ export const CommandPalette = () => {
                       {t.name} <span className="text-muted-foreground">({t.constellation})</span>
                     </span>
                     <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                      {next ? `Next: ${next.name}` : "Complete"}
+                      {next ? `Next: ${next.name}` : done ? "Complete" : "Locked"}
                     </span>
                   </CommandItem>
                 );
@@ -179,6 +181,7 @@ export const CommandPalette = () => {
                     <span className="hidden truncate text-muted-foreground sm:inline">{track.name}</span>
                     <span className={cn("ml-auto shrink-0 text-xs", state === "mastered" ? "text-[hsl(var(--glow-completed))]" : "text-muted-foreground")}>
                       {stateLabel[state]}
+                      {state === "locked" && <span className="sr-only">, unlocks after {unlockAfter(s)}</span>}
                     </span>
                     {s.unlocked && (
                       // Pointer shortcut for the highlighted row; keyboard users get ⌘/Ctrl+Enter
@@ -210,7 +213,7 @@ export const CommandPalette = () => {
           >
             {highlighted && !highlighted.unlocked ? (
               <span className="truncate">
-                Unlocks after {highlighted.requires.filter((r) => !mastered.has(r)).map((r) => skillById.get(r)!.name).join(" and ")}
+                Unlocks after {unlockAfter(highlighted)}
               </span>
             ) : (
               <>

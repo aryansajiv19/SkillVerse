@@ -37,7 +37,7 @@ const Dashboard = () => {
       <>
         {stats.xp
           ? `Ranked #${stats.rank} on the leaderboard. `
-          : "Master your first skill to get on the leaderboard. "}
+          : "Earn XP to get on the leaderboard: pass a skill check or finish a challenge. "}
         <Link
           to={`/u/${encodeURIComponent(stats.username)}`}
           className="text-foreground underline underline-offset-4 hover:text-[hsl(var(--glow-completed))]"
@@ -48,7 +48,7 @@ const Dashboard = () => {
     );
 
   return (
-    <PageShell title={stats.username || "Dashboard"} subtitle={subtitle}>
+    <PageShell title={stats.username || "Dashboard"} documentTitle="Dashboard" nameTitle={!!stats.username} subtitle={subtitle}>
       {failed ? (
         <LoadError what="your progress" error={failed} onRetry={retry} />
       ) : loading ? (

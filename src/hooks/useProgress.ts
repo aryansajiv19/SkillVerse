@@ -149,7 +149,7 @@ export const checkAnswer = async (challengeId: string, index: number, answer: st
   return data as unknown as AnswerFeedback;
 };
 
-/** Top players, kept live: any stats change anywhere refetches (debounced). */
+/** Top players, kept live: any stats change anywhere refetches (throttled, with jitter so clients spread out). */
 export const useLeaderboard = (limit = 50) => {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -161,8 +161,13 @@ export const useLeaderboard = (limit = 50) => {
     const channel = supabase
       .channel(`leaderboard-${limit}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "player_stats" }, () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => qc.invalidateQueries({ queryKey: ["leaderboard"] }), 1500);
+        if (timer) return;
+        timer = setTimeout(() => {
+          timer = undefined;
+          qc.invalidateQueries({ queryKey: ["leaderboard"] });
+          // Your own rank row (outside the top rows) comes from the stats query.
+          qc.invalidateQueries({ queryKey: ["stats"] });
+        }, 1000 + Math.random() * 3000);
       })
       .subscribe((status) => setLive(status === "SUBSCRIBED"));
     return () => {

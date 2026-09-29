@@ -155,7 +155,7 @@ const Settings = () => {
                 >
                   {resetAll.isPending ? "Resetting…" : "Yes, reset everything"}
                 </Button>
-                <Button variant="outline" autoFocus onClick={() => setConfirmReset(false)}>Keep my progress</Button>
+                <Button variant="outline" autoFocus disabled={resetAll.isPending} onClick={() => setConfirmReset(false)}>Keep my progress</Button>
               </div>
             </div>
           ) : (
