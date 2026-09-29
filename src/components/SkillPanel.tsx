@@ -32,7 +32,8 @@ export const SkillPanel = ({
   return (
     <Sheet open={!!skill} onOpenChange={(open) => !open && onClose()}>
       <SheetContent
-        className="glass-panel flex w-full flex-col gap-8 overflow-y-auto border-l sm:max-w-md"
+        // The sheet's close button is its last child: give it a 44px hit area (the icon stays 16px).
+        className="glass-panel flex w-full flex-col gap-8 overflow-y-auto border-l sm:max-w-md [&>button:last-child]:right-2 [&>button:last-child]:top-2 [&>button:last-child]:grid [&>button:last-child]:h-11 [&>button:last-child]:w-11 [&>button:last-child]:place-items-center"
         // Start on the title, not the first button: for a mastered skill that would be "Reset skill".
         onOpenAutoFocus={(e) => {
           e.preventDefault();
@@ -150,7 +151,7 @@ const PanelBody = ({ skill, title }: { skill: SkillState; title: RefObject<HTMLH
         </section>
       )}
 
-      <div className="mt-auto space-y-3 border-t pt-6">
+      <div className="mt-auto space-y-3 border-t pt-6 max-sm:[&_:is(a,button)]:h-11">
         {!skill.unlocked ? (
           <p className="text-sm text-muted-foreground">
             Master {missing.map((id) => skillById.get(id)!.name).join(" and ")}{" "}

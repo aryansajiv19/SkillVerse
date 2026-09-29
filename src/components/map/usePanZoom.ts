@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type KeyboardEvent, type RefObject } from "react";
 import {
-  GALAXY, K_READABLE, centerOn, clamp, clampView, fitScale, galaxyScale, isVisible, safeCenter, zoomAt, zoomLimits,
+  K_READABLE, centerOn, clamp, clampView, defaultView, fitScale, isVisible, safeCenter, zoomAt, zoomLimits,
   type Box, type Insets, type Point, type View,
 } from "./geometry";
 
@@ -17,8 +17,8 @@ export const usePanZoom = ({ getSafe, reduced, watch, getHome }: {
   /** Screen insets kept clear of stars: fixed nav, bottom controls, zoom buttons. */
   getSafe: (vw: number, vh: number) => Insets;
   reduced: boolean;
-  /** When the galaxy is wider than the screen (phones), the world point to start on, e.g. the learner's next stars. */
-  getHome?: () => Point | null;
+  /** When the galaxy overflows the screen at a readable zoom, the world points to start on, e.g. the learner's next stars. */
+  getHome?: () => Point[];
   /** Re-measure the safe area when this element resizes (the bottom controls). */
   watch?: RefObject<HTMLElement>;
 }) => {
@@ -85,15 +85,7 @@ export const usePanZoom = ({ getSafe, reduced, watch, getHome }: {
       raf.current = requestAnimationFrame(step);
     };
 
-    const fitView = () => {
-      const { w, h } = size.current;
-      const k = galaxyScale(w, h, safe.current);
-      const whole = centerOn(GALAXY, k, w, h, safe.current);
-      const home = opts.current.getHome?.();
-      const overflows = (GALAXY.x1 - GALAXY.x0) * k > w - safe.current.left - safe.current.right;
-      // Too wide to show at a readable zoom: slide sideways to where the learner's next stars are.
-      return overflows && home ? { ...whole, x: safeCenter(w, h, safe.current).x - home.x * k } : whole;
-    };
+    const fitView = () => defaultView(size.current.w, size.current.h, safe.current, opts.current.getHome?.());
 
     return {
       measure,
@@ -103,6 +95,10 @@ export const usePanZoom = ({ getSafe, reduced, watch, getHome }: {
       fit: (ms = 280) => {
         fitted.current = true;
         animateTo(fitView(), ms);
+      },
+      /** Re-apply the default view (e.g. once progress has loaded), unless the user has moved the map. */
+      refit: () => {
+        if (fitted.current) animateTo(fitView(), 0);
       },
       /** Centre `box`, zooming to fit it but never past `maxK` or below a readable zoom. */
       show: (box: Box, ms: number, maxK = view.current.k) => {

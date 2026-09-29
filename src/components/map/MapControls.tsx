@@ -4,10 +4,13 @@ import { ChevronDown, Flame, Minus, Plus, Scan } from "lucide-react";
 import { tracks, trackById, type TrackId } from "@/content/skills";
 import { cn } from "@/lib/utils";
 
-/** Chips from sm up; a native select on phones, where five chips don't fit. */
+/**
+ * Chips on roomy screens; a native select on phones, where five chips don't fit, and on short
+ * screens (landscape phones), where the chips would wrap the controls to a second row.
+ */
 export const TrackFocus = ({ value, onChange }: { value: TrackId | null; onChange: (track: TrackId | null) => void }) => (
   <>
-    <div role="group" aria-label="Focus a track" className="glass-panel hidden gap-1 rounded-full p-1 sm:flex">
+    <div role="group" aria-label="Focus a track" className="glass-panel hidden gap-1 rounded-full p-1 [@media(min-width:640px)_and_(min-height:480px)]:flex">
       <Chip active={!value} onClick={() => onChange(null)}>All</Chip>
       {tracks.map((t) => (
         <Chip key={t.id} active={value === t.id} hue={t.hue} onClick={() => onChange(value === t.id ? null : t.id)}>
@@ -15,7 +18,7 @@ export const TrackFocus = ({ value, onChange }: { value: TrackId | null; onChang
         </Chip>
       ))}
     </div>
-    <label className="glass-panel relative flex h-10 items-center rounded-full sm:hidden">
+    <label className="glass-panel relative flex h-11 items-center rounded-full sm:h-10 [@media(min-width:640px)_and_(min-height:480px)]:hidden">
       <span className="sr-only">Focus a track</span>
       <select
         value={value ?? ""}
@@ -48,17 +51,21 @@ const Chip = ({ active, hue, onClick, children }: { active: boolean; hue?: strin
   </button>
 );
 
-export const Hud = ({ level, pct, toNext, lit, total, streak }: {
+export const Hud = ({ level, pct, toNext, lit, total, streak, pending }: {
   level: number;
   pct: number;
   toNext: number;
   lit: number;
   total: number;
   streak: number;
+  /** Progress is still loading: keep the pill's size but don't show a new player's numbers. */
+  pending?: boolean;
 }) => (
   <Link
     to="/dashboard"
-    className="glass-panel flex h-10 items-center gap-2.5 whitespace-nowrap rounded-full px-4 text-sm transition-colors hover:border-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-4 sm:px-5"
+    aria-busy={pending}
+    aria-label={pending ? "Your progress, loading" : undefined}
+    className={cn(pending && "[&>*]:invisible", "glass-panel flex h-11 items-center gap-2.5 sm:h-10 whitespace-nowrap rounded-full px-4 text-sm transition-colors hover:border-foreground/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:gap-4 sm:px-5")}
   >
     <span className="font-display font-bold">Level {level}</span>
     <span aria-hidden className="h-1.5 w-10 overflow-hidden rounded-full bg-muted sm:w-24">
@@ -82,7 +89,7 @@ export const ZoomControls = ({ onZoomIn, onZoomOut, onFit }: { onZoomIn: () => v
   <div role="group" aria-label="Zoom" className="glass-panel flex flex-col gap-0.5 rounded-full p-1">
     <ZoomButton label="Zoom in" keys="+" onClick={onZoomIn}><Plus /></ZoomButton>
     <ZoomButton label="Zoom out" keys="-" onClick={onZoomOut}><Minus /></ZoomButton>
-    <ZoomButton label="Show the whole galaxy" keys="0" onClick={onFit}><Scan /></ZoomButton>
+    <ZoomButton label="Reset view" keys="0" onClick={onFit}><Scan /></ZoomButton>
   </div>
 );
 
@@ -92,7 +99,7 @@ const ZoomButton = ({ label, keys, onClick, children }: { label: string; keys: s
     onClick={onClick}
     aria-label={label}
     title={`${label} (${keys})`}
-    className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 [&_svg]:h-4 [&_svg]:w-4"
+    className="grid h-11 w-11 place-items-center sm:h-9 sm:w-9 rounded-full text-muted-foreground transition-[color,background-color,transform] duration-150 hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 [&_svg]:h-4 [&_svg]:w-4"
   >
     {children}
   </button>

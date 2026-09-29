@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Component, lazy, Suspense, useCallback, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ShootingStars } from "@/components/ShootingStars";
 import { Navigation } from "@/components/Navigation";
@@ -21,12 +21,26 @@ const ThreeGalaxyCanvas = lazy(() => import("@/components/galaxy/ThreeGalaxyCanv
 
 const SKY = "radial-gradient(ellipse at 50% 40%, hsl(232 55% 13%) 0%, hsl(232 60% 8%) 45%, hsl(235 70% 4%) 100%)";
 
+/** The sky is decoration: if three.js fails to load or there's no WebGL, keep the gradient and carry on. */
+class Decorative extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError = () => ({ failed: true });
+  render = () => (this.state.failed ? null : this.props.children);
+}
+
 const INTRO_KEY = "skillverse:intro-seen";
 const seenIntro = () => {
   try {
     return localStorage.getItem(INTRO_KEY) === "1";
   } catch {
     return false;
+  }
+};
+const markIntroSeen = () => {
+  try {
+    localStorage.setItem(INTRO_KEY, "1");
+  } catch {
+    /* private mode: show the intro again next time */
   }
 };
 
@@ -85,16 +99,18 @@ const Index = () => {
   const stackRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<HTMLDivElement>(null);
   const getSafe = useCallback((vw: number, vh: number) => safeInsets(vw, vh, [stackRef.current, zoomRef.current]), []);
-  const { viewportRef, groupRef, onKeyDown, show, fit, reveal, zoomBy, contains, ZOOM_STEP } = usePanZoom({
+  const { viewportRef, groupRef, onKeyDown, show, fit, refit, reveal, zoomBy, contains, ZOOM_STEP } = usePanZoom({
     getSafe,
     reduced,
     watch: stackRef,
     // Phones can't show the whole galaxy readably; start where the learner can act next.
-    getHome: () => {
-      const next = nextUp(skills).map(worldPos);
-      return next.length ? { x: next.reduce((a, p) => a + p.x, 0) / next.length, y: 0 } : null;
-    },
+    getHome: () => nextUp(skills).map(worldPos),
   });
+
+  // Arriving from a first mastery skips the intro; don't bring it back next visit.
+  useEffect(() => {
+    if (litParam) markIntroSeen();
+  }, [litParam]);
 
   const lastSelected = useRef<string | null>(null);
   const introFocus = useRef<string | null>(null);
@@ -165,6 +181,12 @@ const Index = () => {
     );
   }, [litParam, loading, intro, skills, reduced, show, clearLitParam, settleOn]);
 
+  // The first fit ran before progress loaded; re-centre on the real next stars (after the lit
+  // effect above, whose show() marks the view as moved).
+  useEffect(() => {
+    if (!loading) refit();
+  }, [loading, refit]);
+
   // Ends once every line has landed and the new stars have faded in.
   useEffect(() => {
     if (lit?.phase !== "ignite" || lit.landed.size < lit.targets.length) return;
@@ -202,11 +224,7 @@ const Index = () => {
 
   const closeIntro = (track: TrackId | null) => {
     setIntro(false);
-    try {
-      localStorage.setItem(INTRO_KEY, "1");
-    } catch {
-      /* private mode: show the intro again next time */
-    }
+    markIntroSeen();
     const inTrack = display.filter((s) => s.track === track);
     introFocus.current = (inTrack.find((s) => s.unlocked && !s.mastered) ?? inTrack[0])?.id ?? null;
     if (track) focusTrack(track);
@@ -218,14 +236,16 @@ const Index = () => {
   return (
     <div className="relative h-[100dvh] overflow-hidden">
       <div aria-hidden className="fixed inset-0 -z-20" style={{ background: SKY }} />
-      <Suspense fallback={null}>
-        <ThreeGalaxyCanvas />
-      </Suspense>
+      <Decorative>
+        <Suspense fallback={null}>
+          <ThreeGalaxyCanvas />
+        </Suspense>
+      </Decorative>
       <ShootingStars />
       {/* Keeps the nav legible when the map is panned under it. */}
-      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[72px] bg-gradient-to-b from-background/80 to-transparent" />
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[72px] bg-gradient-to-b from-background from-40% to-transparent" />
       <Navigation />
-      <main>
+      <main id="main" tabIndex={-1} className="outline-none">
         <h1 className="sr-only">Skill galaxy</h1>
 
         <div
@@ -233,6 +253,7 @@ const Index = () => {
           role="region"
           aria-label="Skill map"
           aria-describedby="map-help"
+          aria-busy={loading}
           tabIndex={0}
           onKeyDown={onKeyDown}
           className="absolute inset-0 cursor-grab touch-none select-none overflow-hidden outline-none focus-visible:shadow-[inset_0_0_0_2px_hsl(var(--ring))] data-[dragging]:cursor-grabbing"
@@ -277,6 +298,7 @@ const Index = () => {
                     dimmed={!!focus && focus !== s.track}
                     ignite={lit?.phase === "ignite" && lit.id === s.id}
                     appear={!!lit?.landed.has(s.id)}
+                    pending={loading}
                     onSelect={() => {
                       lastSelected.current = s.id;
                       setSelectedId(s.id);
@@ -288,19 +310,19 @@ const Index = () => {
           ))}
         </div>
         <p id="map-help" className="sr-only">
-          Drag to pan, scroll or pinch to zoom. With the map focused, arrow keys pan, plus and minus zoom, and 0 shows the whole galaxy.
+          Drag to pan, scroll or pinch to zoom. With the map focused, arrow keys pan, plus and minus zoom, and 0 resets the view.
         </p>
         <p aria-live="polite" className="sr-only">{announcement}</p>
 
         {/* Centred over the tutor button (bottom-right, 56px, 24px in). */}
-        <div ref={zoomRef} className="absolute bottom-[calc(var(--bottom-bar-height)_+_92px)] right-[30px] z-40">
+        <div ref={zoomRef} className="absolute bottom-[calc(var(--bottom-bar-height)_+_92px)] right-[26px] z-40 sm:right-[30px]">
           <ZoomControls onZoomIn={() => zoomBy(ZOOM_STEP)} onZoomOut={() => zoomBy(1 / ZOOM_STEP)} onFit={() => fit()} />
         </div>
 
         {/* Stays clear of the tutor button and wraps to two rows when narrow, so nothing overlaps. */}
         <div ref={stackRef} className="pointer-events-none absolute bottom-[calc(var(--bottom-bar-height)_+_1.5rem)] left-4 right-24 z-40 flex flex-wrap items-center gap-2 sm:left-6 [&>*]:pointer-events-auto">
           <TrackFocus value={focus} onChange={focusTrack} />
-          <Hud level={lvl.level} pct={lvl.pct} toNext={lvl.toNext} lit={skills.filter((s) => s.mastered).length} total={skills.length} streak={stats.streak} />
+          <Hud level={lvl.level} pct={lvl.pct} toNext={lvl.toNext} lit={skills.filter((s) => s.mastered).length} total={skills.length} streak={stats.streak} pending={loading} />
         </div>
       </main>
 
