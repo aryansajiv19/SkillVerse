@@ -43,3 +43,4 @@ supabase/.branches
 
 # /brag working files
 brag-output/
+.vite/

@@ -132,3 +132,20 @@ export const activityCalendar = (timestamps: string[], now = new Date(), weeks =
   for (const n of counts.values()) total += n;
   return { weeks: cols, months, today: isoDay(todayMs), total, activeDays: counts.size };
 };
+
+/**
+ * The learning path to a skill: every prerequisite not yet mastered, in an order where each
+ * skill comes after everything it needs, ending with the skill itself.
+ */
+export const learningPath = (skillId: string, mastered: Set<string>): string[] => {
+  const order: string[] = [];
+  const seen = new Set<string>();
+  const visit = (id: string) => {
+    if (seen.has(id) || (mastered.has(id) && id !== skillId)) return;
+    seen.add(id);
+    skills.find((s) => s.id === id)?.requires.forEach(visit);
+    order.push(id);
+  };
+  visit(skillId);
+  return order;
+};

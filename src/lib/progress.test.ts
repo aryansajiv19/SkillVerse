@@ -7,6 +7,7 @@ import {
   HEAT_WEEKS,
   heatLevel,
   isUnlocked,
+  learningPath,
   levelProgress,
   nextUp,
   skillStates,
@@ -175,5 +176,20 @@ describe("activityCalendar", () => {
     ]);
     // starts Sun 29 Mar: "Mar" would sit one column before "Apr", so it is dropped
     expect(activityCalendar([], new Date("2026-09-23T08:00:00Z")).months[0]).toEqual({ week: 1, label: "Apr" });
+  });
+});
+
+describe("learningPath", () => {
+  it("lists unmastered prerequisites before the skill, each after what it needs", () => {
+    const path = learningPath("nextjs", new Set());
+    expect(path.at(-1)).toBe("nextjs");
+    expect(new Set(path)).toEqual(new Set(["html", "css", "javascript", "react", "typescript", "nextjs"]));
+    for (const id of path) for (const r of skillById.get(id)!.requires) expect(path.indexOf(r)).toBeLessThan(path.indexOf(id));
+  });
+  it("skips what's already mastered", () => {
+    expect(learningPath("react", new Set(["html", "css", "javascript"]))).toEqual(["react"]);
+  });
+  it("crosses tracks", () => {
+    expect(learningPath("llm-apps", new Set())).toContain("rest-apis");
   });
 });

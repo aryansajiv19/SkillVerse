@@ -101,11 +101,13 @@ export const usePanZoom = ({ getSafe, reduced, watch, getHome }: {
         if (fitted.current) animateTo(fitView(), 0);
       },
       /** Centre `box`, zooming to fit it but never past `maxK` or below a readable zoom. */
-      show: (box: Box, ms: number, maxK = view.current.k) => {
+      /** `inset` adds to the safe area, e.g. the width of a side panel covering the map. */
+      show: (box: Box, ms: number, maxK = view.current.k, inset: Partial<Insets> = {}) => {
         fitted.current = false;
         const { w, h } = size.current;
-        const k = clamp(fitScale(box, w, h, safe.current), Math.min(K_READABLE, view.current.k), maxK);
-        animateTo(centerOn(box, k, w, h, safe.current), ms);
+        const s = { ...safe.current, right: safe.current.right + (inset.right ?? 0) };
+        const k = clamp(fitScale(box, w, h, s), Math.min(K_READABLE, view.current.k), maxK);
+        animateTo(centerOn(box, k, w, h, s), ms);
       },
       /** Pan just enough to bring a world point inside the safe area, if it's outside. */
       reveal: (p: Point, ms = 200) => {

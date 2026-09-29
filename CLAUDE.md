@@ -24,7 +24,7 @@ npm run build && npm run check:bundle
 
 ## Conventions
 
-- Design language: "star atlas". Navy background, track hues from `src/content/skills.ts`, gold (`--glow-completed`) for mastery, Syne for display and Figtree for body. Motion is calm and respects `prefers-reduced-motion`. `src/contrast.test.ts` guards WCAG AA for the theme tokens.
+- Design language: "star atlas". Navy background, track hues from `src/content/skills.ts`, gold (`--glow-completed`) for mastery, Plus Jakarta Sans for display and Figtree for body. Motion is calm and respects `prefers-reduced-motion`. `src/contrast.test.ts` guards WCAG AA for the theme tokens.
 - Fixed UI on phones sits above the tab bar via `--bottom-bar-height`. The tutor launcher is bottom-right, 56px, 24px in.
 - Copy is sentence case, plain verbs, and specific. No exclamation marks in UI chrome.
 - E2E selectors live in `e2e/helpers.ts`. Update them there when UI copy or roles change.
