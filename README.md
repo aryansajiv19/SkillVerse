@@ -70,7 +70,7 @@ See [SECURITY.md](SECURITY.md) for the threat model and known trade-offs.
 
 - **Stats are maintained, not recomputed.** Statement-level triggers refresh one player's `player_stats` row when their completions change (bounded by the catalog size), so a bulk reset costs one refresh.
 - **Ranking is one pass.** Rank is a single `rank()` window over `player_stats`, and reading the top of the leaderboard stops after N rows of the XP index. (An earlier per-row count let one request that filters on rank do quadratic work; the security review replaced it.)
-- **Live without stampedes.** Leaderboards subscribe to `player_stats` over Realtime and debounce refetches.
+- **Live without stampedes.** Leaderboards subscribe to `player_stats` over Realtime and throttle refetches with jitter.
 - **Small first load.** Routes are code-split; Three.js only loads with the galaxy.
 - **Housekeeping.** pg_cron purges idle guest accounts nightly.
 
