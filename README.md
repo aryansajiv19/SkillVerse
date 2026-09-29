@@ -14,7 +14,7 @@
 
 </div>
 
-https://github.com/user-attachments/assets/6c67ab06-b4ea-4e2b-ac92-dac078a04c20
+https://github.com/user-attachments/assets/14bd5aa6-041c-4cea-8e70-698c8ebd8937
 
 ## Why I built it
 
@@ -24,12 +24,12 @@ SkillVerse turns the roadmap into a sky you can navigate, a bit like The Odin Pr
 
 ## How it works
 
-1. **Pick a destination.** 28 stars in four regions of the galaxy: Frontend, Backend, Data & AI, and DevOps & Cloud. Prerequisites cross regions, so LLM Apps needs both ML Basics and REST APIs.
+1. **Pick a destination.** Stars are grouped into regions of the galaxy: Frontend, Backend, Data & AI, and DevOps & Cloud. Prerequisites cross regions, so LLM Apps needs both ML Basics and REST APIs.
 2. **See your learning path.** Click any star, even one far away, and the map lights up the route to it: numbered stars in the order to learn them, skipping everything you've already mastered.
 3. **Learn from the lesson.** Each star is a lesson: what you'll learn, an assignment of hand-picked free resources (MDN, web.dev, react.dev, the official docs and so on), and a cheat sheet for many skills.
-4. **Practise.** 21 code challenges run real tests in your browser, plus a debugging game, for bonus XP.
+4. **Practise.** Code challenges run real tests in your browser, plus a debugging game, for bonus XP.
 5. **Pass the knowledge check.** A short quiz graded by the database. Miss one question and you still pass. The star lights up, and the next stars on your path unlock.
-6. **Form constellations.** Seven learning paths are constellations named after real ones: Sagittarius, the Archer (full-stack developer), Lyra, Orion, Cygnus, Pyxis, Draco and Argo. Each one is a set of goal stars plus everything they need, so a path can span regions. Light its last star and it goes supernova: a shockwave, the figure flares in gold, and its name is written on your map, dashboard and public profile.
+6. **Form constellations.** Learning paths are constellations named after real ones, such as Sagittarius, the Archer (full-stack developer), Cygnus, the Swan (AI engineer) and Draco, the Dragon (DevOps). Each one is a set of goal stars plus everything they need, so a path can span regions. Light its last star and it goes supernova: a shockwave, the figure flares in gold, and its name is written on your map, dashboard and public profile.
 7. **Keep going.** XP, levels, streaks, achievements, a public profile with an activity heatmap, and a leaderboard that updates live.
 
 The sky behaves like one, too. Stars several steps away from you are small and faint, like distant stars, and brighten as you get closer. Keep a streak going and a gold comet crosses the sky, its tail growing with every day. All of it is off with reduced motion.
@@ -40,7 +40,7 @@ No sign-up wall: every visitor gets a guest account on first load, and can conne
 
 <table>
   <tr>
-    <td><img src="docs/media/path.jpg" alt="Selecting LLM Apps lights up a seven-star learning path across three regions"></td>
+    <td><img src="docs/media/path.jpg" alt="Selecting LLM Apps lights up a learning path across three regions"></td>
     <td><img src="docs/media/lesson.jpg" alt="The React lesson: the path to it, what you'll learn, and an assignment of free resources"></td>
   </tr>
   <tr>
