@@ -12,8 +12,8 @@ import { usePanZoom } from "@/components/map/usePanZoom";
 import { useReducedMotion } from "@/components/map/useReducedMotion";
 import { GALAXY, WORLD, atWorld, boundsOf, trackBounds, worldPos, type Insets } from "@/components/map/geometry";
 import { useProgress } from "@/hooks/useProgress";
-import { levelProgress, nextUp } from "@/lib/progress";
-import { tracks, unlocksOf, type TrackId } from "@/content/skills";
+import { learningPath, levelProgress, nextUp } from "@/lib/progress";
+import { skillById, tracks, unlocksOf, type TrackId } from "@/content/skills";
 import { cn } from "@/lib/utils";
 
 // three.js is the heaviest thing on the page, so the stars render first and the sky fades in after.
@@ -231,6 +231,11 @@ const Index = () => {
   };
 
   const selected = skills.find((s) => s.id === selectedId) ?? null;
+  // Selecting a star shows its learning path: the stars still to learn, numbered in order,
+  // plus the mastered stars it starts from. Everything else dims.
+  const mastered = new Set(skills.filter((s) => s.mastered).map((s) => s.id));
+  const pathSteps = selected ? learningPath(selected.id, mastered) : null;
+  const route = pathSteps ? new Set([...pathSteps, ...pathSteps.flatMap((id) => skills.find((s) => s.id === id)!.requires)]) : null;
   const lvl = levelProgress(stats.xp);
 
   return (
@@ -263,6 +268,7 @@ const Index = () => {
             ref={groupRef}
             skills={display}
             focus={focus}
+            path={route}
             beams={
               lit?.phase === "ignite" && lit.targets.length
                 ? { from: lit.id, to: lit.targets, landed: lit.landed, onLand: (id) => setLit((l) => l && { ...l, landed: new Set(l.landed).add(id) }) }
@@ -295,13 +301,20 @@ const Index = () => {
                   <SkillStar
                     key={s.id}
                     skill={s}
-                    dimmed={!!focus && focus !== s.track}
+                    dimmed={route ? !route.has(s.id) : !!focus && focus !== s.track}
+                    step={pathSteps && pathSteps.length > 1 && pathSteps.includes(s.id) ? pathSteps.indexOf(s.id) + 1 : undefined}
                     ignite={lit?.phase === "ignite" && lit.id === s.id}
                     appear={!!lit?.landed.has(s.id)}
                     pending={loading}
                     onSelect={() => {
                       lastSelected.current = s.id;
                       setSelectedId(s.id);
+                      // Frame the whole learning path in the part of the map the panel leaves visible.
+                      if (window.innerWidth >= 640) {
+                        const steps = learningPath(s.id, mastered);
+                        const onPath = new Set([...steps, ...steps.flatMap((id) => skillById.get(id)!.requires)]);
+                        show(boundsOf(skills.filter((x) => onPath.has(x.id))), 450, 1, { right: Math.min(448, window.innerWidth * 0.5) });
+                      }
                     }}
                     onFocus={() => reveal(worldPos(s))}
                   />

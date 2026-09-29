@@ -10,7 +10,8 @@ import { CheatSheet } from "@/components/CheatSheet";
 import { PlanetDebugger } from "@/components/games/PlanetDebugger";
 import { Button } from "@/components/ui/button";
 import { useProgress } from "@/hooks/useProgress";
-import type { SkillState } from "@/lib/progress";
+import { learningPath, type SkillState } from "@/lib/progress";
+import { lessonTopics } from "@/content/lessons";
 import { cn } from "@/lib/utils";
 import { skillById, trackById, tracks, unlocksOf } from "@/content/skills";
 import { SKILL_MASTERY_XP, challengeById, challengesForSkill, checkIdFor, type Challenge } from "@/content/challenges";
@@ -118,6 +119,8 @@ const SkillView = ({ skillId }: { skillId: string }) => {
   const closer = later.filter((s) => !opens.includes(s));
   const reading = resources[skill.id] ?? [];
   const sheet = cheatSheets[skill.id];
+  const topics = lessonTopics[skill.id] ?? [];
+  const path = learningPath(skill.id, new Set(skills.filter((s) => s.mastered).map((s) => s.id)));
 
   return (
     <PageShell title={skill.name} subtitle={skill.description}>
@@ -129,12 +132,87 @@ const SkillView = ({ skillId }: { skillId: string }) => {
       </div>
 
       {gate ?? <>
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_19rem] xl:gap-16">
-        <div className="space-y-12">
+      <div className="max-w-3xl space-y-14">
+          {path.length > 1 && (
+            <section aria-labelledby="path-heading" className="rounded-2xl border border-[hsl(var(--glow-completed)/0.35)] p-5 sm:p-6">
+              <h2 id="path-heading" className="text-lg font-bold">Your path to {skill.name}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Start with the first star; each one unlocks the next.</p>
+              <ol className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+                {path.map((id, i) => (
+                  <li key={id} className="flex items-center gap-2">
+                    <Link to={`/learn?skill=${id}`} className={cn("flex items-center gap-2 rounded-full border px-3 py-1.5 transition-colors hover:border-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", id === skill.id && "border-foreground/60 font-semibold")}>
+                      <span className="grid h-5 w-5 place-items-center rounded-full bg-[hsl(var(--glow-completed))] text-[11px] font-bold text-background">{i + 1}</span>
+                      {skillById.get(id)!.name}
+                    </Link>
+                    {i < path.length - 1 && <span aria-hidden className="text-muted-foreground">→</span>}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          <section aria-labelledby="overview-heading">
+            <h2 id="overview-heading" className="text-2xl font-bold"><Step n={1} />What you'll learn</h2>
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+              {topics.map((t) => (
+                <li key={t} className="flex gap-3 rounded-xl border border-border/60 bg-card/30 p-4 leading-snug">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: `hsl(${track.hue})` }} aria-hidden />{t}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section aria-labelledby="reading-heading">
+            <h2 id="reading-heading" className="text-2xl font-bold"><Step n={2} />Assignment</h2>
+            <p className="mt-2 max-w-prose text-muted-foreground">Work through these free guides. They cover everything the knowledge check asks.</p>
+            <ul className="mt-5 space-y-3">
+              {reading.map((r) => (
+                <li key={r.url}>
+                  <a href={r.url} target="_blank" rel="noopener noreferrer"
+                    className="group flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-card/30 px-5 py-4 transition-colors hover:border-foreground/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <span>
+                      <span className="block font-semibold">{r.title}</span>
+                      <span className="text-sm text-muted-foreground">{r.source}</span>
+                    </span>
+                    <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden />
+                    <span className="sr-only">(opens in a new tab)</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {sheet && (
+              <Button variant="outline" className="mt-4" aria-expanded={sheetOpen} aria-controls={sheetId}
+                onClick={() => {
+                  setSheetOpen(!sheetOpen);
+                  if (!sheetOpen) requestAnimationFrame(() => document.getElementById(sheetId)?.scrollIntoView({ block: "start" }));
+                }}>
+                {sheetOpen ? "Hide" : "Show"} the {skill.name} cheat sheet
+              </Button>
+            )}
+          </section>
+          {sheet && <div id={sheetId} hidden={!sheetOpen} className="scroll-mt-24"><CheatSheet data={sheet} /></div>}
+
+          <section aria-labelledby="practice-heading">
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <h2 id="practice-heading" className="text-2xl font-bold"><Step n={3} />Practice</h2>
+              {practice.length > 0 && (
+                <p className="text-sm text-muted-foreground">{practice.filter((c) => doneChallenges.has(c.id)).length} of {practice.length} done</p>
+              )}
+            </div>
+            {practice.length ? (
+              <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/70 bg-card/30">
+                {practice.map((c) => <PracticeRow key={c.id} challenge={c} done={doneChallenges.has(c.id)} locked={!skill.unlocked} />)}
+              </ul>
+            ) : (
+              <p className="max-w-prose text-muted-foreground">
+                No exercises for {skill.name} yet. The reading list covers what the skill check asks.
+              </p>
+            )}
+          </section>
+
           <section aria-labelledby="check-heading" className="glass-panel rounded-2xl p-6 sm:p-8" style={{ ["--track" as string]: track.hue }}>
             <div className="flex items-center gap-3">
-              <StarMark skill={skill} large />
-              <h2 id="check-heading" className="text-2xl font-extrabold sm:text-3xl">Skill check</h2>
+              <h2 id="check-heading" className="text-2xl font-extrabold sm:text-3xl"><Step n={4} />Knowledge check</h2>
             </div>
             {check?.type === "quiz" && (
               skill.mastered ? (
@@ -160,7 +238,7 @@ const SkillView = ({ skillId }: { skillId: string }) => {
                 <>
                   <p className="mt-4 max-w-prose leading-relaxed text-foreground/85">
                     <Lock className="mr-1.5 inline h-4 w-4 align-[-2px] text-muted-foreground" aria-hidden />
-                    Locked. Master {names(missing)} first, then come back for this one. The reading list is open now if you want a head start.
+                    Locked. Master {names(missing)} first, then come back for this one. The lesson above is open now if you want a head start.
                   </p>
                   <div className="mt-6 flex flex-wrap gap-3">
                     {missing.map((id) => (
@@ -171,61 +249,16 @@ const SkillView = ({ skillId }: { skillId: string }) => {
               )
             )}
           </section>
-
-          <section aria-labelledby="practice-heading">
-            <div className="mb-4 flex items-baseline justify-between gap-3">
-              <h2 id="practice-heading" className="text-2xl font-bold">Practice</h2>
-              {practice.length > 0 && (
-                <p className="text-sm text-muted-foreground">{practice.filter((c) => doneChallenges.has(c.id)).length} of {practice.length} done</p>
-              )}
-            </div>
-            {practice.length ? (
-              <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/70 bg-card/30">
-                {practice.map((c) => <PracticeRow key={c.id} challenge={c} done={doneChallenges.has(c.id)} locked={!skill.unlocked} />)}
-              </ul>
-            ) : (
-              <p className="max-w-prose text-muted-foreground">
-                No exercises for {skill.name} yet. The reading list covers what the skill check asks.
-              </p>
-            )}
-          </section>
-        </div>
-
-        <aside aria-labelledby="reading-heading" className="space-y-8">
-          <section>
-            <h2 id="reading-heading" className="text-xl font-bold">{skill.mastered ? "Reading list" : "Before the skill check"}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Free guides from trusted sources.</p>
-            <ul className="mt-4 space-y-4">
-              {reading.map((r) => (
-                <li key={r.url}>
-                  <a href={r.url} target="_blank" rel="noopener noreferrer"
-                    className="group inline-flex items-start gap-1.5 rounded font-medium leading-snug underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    {r.title}
-                    <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden />
-                    <span className="sr-only">(opens in a new tab)</span>
-                  </a>
-                  <p className="text-sm text-muted-foreground">{r.source}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-          {sheet && (
-            <Button variant="outline" className="w-full" aria-expanded={sheetOpen} aria-controls={sheetId}
-              onClick={() => {
-                setSheetOpen(!sheetOpen);
-                if (!sheetOpen) requestAnimationFrame(() => document.getElementById(sheetId)?.scrollIntoView({ block: "start" }));
-              }}>
-              {sheetOpen ? "Hide" : "Show"} the {skill.name} cheat sheet
-            </Button>
-          )}
-        </aside>
       </div>
-
-      {sheet && <div id={sheetId} hidden={!sheetOpen} className="mt-12 scroll-mt-24"><CheatSheet data={sheet} /></div>}
       </>}
     </PageShell>
   );
 };
+
+/** Lesson step number: the lesson really is a sequence, read top to bottom. */
+const Step = ({ n }: { n: number }) => (
+  <span aria-hidden className="mr-3 inline-grid h-8 w-8 place-items-center rounded-full border border-border align-[3px] text-base font-bold text-muted-foreground">{n}</span>
+);
 
 const PracticeRow = ({ challenge: c, done, locked }: { challenge: Challenge; done: boolean; locked: boolean }) => {
   const Icon = c.type === "game" ? Gamepad2 : Code;

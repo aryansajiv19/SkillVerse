@@ -2,7 +2,7 @@
 
 # SkillVerse
 
-**A star map of what to learn next.** Every skill is a star. Pass its skill check to light it up and unlock the stars it connects to.
+**A personalised learning path, laid out as a galaxy.** Every skill is a star with a lesson and free resources. Pick where you want to go, and SkillVerse lights up the path of stars to get you there.
 
 **[Open the live demo](https://skillverse-sable.vercel.app)**, no account needed · [How it's built](https://skillverse-sable.vercel.app/about)
 
@@ -14,27 +14,36 @@
 
 </div>
 
-https://github.com/user-attachments/assets/9819f4b1-e009-4734-a834-6a4d9960273d
+https://github.com/user-attachments/assets/3262d27e-a3be-44c0-8916-d1989478a180
 
 ## Why I built it
 
-Most "learn to code" roadmaps are a long checklist: you can't see how skills connect, and nothing tells you whether you actually know something before moving on.
+Most "learn to code" roadmaps are a long, flat checklist. You can't see how skills connect, you don't know what to learn next for the goal you actually have, and nothing tells you whether you've really understood something before moving on.
 
-SkillVerse turns the roadmap into a map. Skills that build on each other are joined like stars in a constellation, and a star only lights up when you pass a short check graded on the server, so progress means something. It started as a hackathon project and grew into a full-stack app: real accounts, real grading, a live leaderboard, and a codebase I'd be happy for someone to read.
+SkillVerse turns the roadmap into a map you can navigate, a bit like The Odin Project with a sense of direction. Skills are stars grouped into constellations, and the lines between them are prerequisites. Click any star and it shows your personal path to it: the stars you still need, in order, each with a short lesson, hand-picked free resources, practice, and a knowledge check. Pass the check and the star lights up. It started as a hackathon project and grew into a full-stack app with real accounts, server-side grading, a live leaderboard, and a codebase I'd be happy for someone to read.
 
 ## How it works
 
-1. **Pick a star.** 28 skills across four constellations: Frontend, Backend, Data & AI, and DevOps & Cloud. Prerequisites cross tracks, so LLM Apps needs both ML Basics and REST APIs.
-2. **Take the skill check.** A short quiz graded by the database. Miss one question and you still pass.
-3. **Watch it light up.** The map flies to the star, it ignites, and lines draw out to the stars it just unlocked.
-4. **Practise for bonus XP.** 21 code challenges run real tests in your browser, plus a debugging game. Every skill has a short reading list of free guides.
-5. **Keep going.** XP, levels, streaks, achievements, a public profile with an activity heatmap, and a leaderboard that updates live.
+1. **Pick a destination.** 28 skills across four constellations: Frontend, Backend, Data & AI, and DevOps & Cloud. Prerequisites cross tracks, so LLM Apps needs both ML Basics and REST APIs.
+2. **See your learning path.** Click any star, even one far away, and the map lights up the route to it: numbered stars in the order to learn them, skipping everything you've already mastered.
+3. **Learn from the lesson.** Each star is a lesson: what you'll learn, an assignment of hand-picked free resources (MDN, web.dev, react.dev, the official docs and so on), and a cheat sheet for many skills.
+4. **Practise.** 21 code challenges run real tests in your browser, plus a debugging game, for bonus XP.
+5. **Pass the knowledge check.** A short quiz graded by the database. Miss one question and you still pass. The star lights up, and the next stars on your path unlock.
+6. **Keep going.** XP, levels, streaks, achievements, a public profile with an activity heatmap, and a leaderboard that updates live.
 
 No sign-up wall: every visitor gets a guest account on first load, and can connect GitHub to keep it.
 
 <p align="center"><img src="docs/media/flow.gif" alt="Opening the TypeScript star, passing its skill check, and watching it light up on the map" width="720"></p>
 
 <table>
+  <tr>
+    <td><img src="docs/media/path.jpg" alt="Selecting LLM Apps lights up a seven-star learning path across three constellations"></td>
+    <td><img src="docs/media/lesson.jpg" alt="The React lesson: the path to it, what you'll learn, and an assignment of free resources"></td>
+  </tr>
+  <tr>
+    <td align="center">Click any star to see your learning path to it</td>
+    <td align="center">Every star is a lesson with hand-picked free resources</td>
+  </tr>
   <tr>
     <td><img src="docs/media/galaxy.jpg" alt="The galaxy map with the Frontend constellation partly lit"></td>
     <td><img src="docs/media/skill-check.jpg" alt="A skill check question with instant feedback"></td>
@@ -128,8 +137,8 @@ A few decisions I'm proud of:
 | What | How | Run it |
 |---|---|---|
 | Database | 63 pgTAP tests: RLS, grading, stats vs full recompute, streaks, rate limits, guest cleanup, privilege invariants | `npx supabase test db` |
-| Logic and content | 210 Vitest tests: catalog integrity, a reference solution proving every code challenge is solvable, the runner, theme contrast | `npm test` |
-| The whole app | 18 Playwright tests, including axe WCAG 2.1 AA scans of 10 pages with no rules disabled | `npm run test:e2e` |
+| Logic and content | 215 Vitest tests: catalog integrity, learning-path ordering, a reference solution proving every code challenge is solvable, the runner, theme contrast | `npm test` |
+| The whole app | 19 Playwright tests, including axe WCAG 2.1 AA scans of 10 pages with no rules disabled | `npm run test:e2e` |
 | Performance | Leaderboard and stats-trigger benchmarks at 10k and 50k players | [`scripts/bench/`](scripts/bench) |
 
 Every push runs typecheck, lint, unit tests, a catalog freshness check, the build, the answer-leak check, the database tests and the e2e suite in [CI](.github/workflows/ci.yml).

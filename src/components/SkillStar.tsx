@@ -6,9 +6,11 @@ import { cn } from "@/lib/utils";
 
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 
-export const SkillStar = ({ skill, dimmed, ignite, appear, pending, onSelect, onFocus }: {
+export const SkillStar = ({ skill, dimmed, step, ignite, appear, pending, onSelect, onFocus }: {
   skill: SkillState;
   dimmed: boolean;
+  /** Position on the selected star's learning path, shown as a numbered badge. */
+  step?: number;
   /** Play the one-off "lit" burst (first-time mastery). */
   ignite?: boolean;
   /** Fade the dot in: this star was just unlocked. */
@@ -48,12 +50,17 @@ export const SkillStar = ({ skill, dimmed, ignite, appear, pending, onSelect, on
       disabled={pending}
       onClick={onSelect}
       onFocus={(e) => e.currentTarget.matches(":focus-visible") && onFocus?.()}
-      aria-label={`${skill.name}, ${state}`}
+      aria-label={`${skill.name}, ${state}${step ? `, step ${step} of your path` : ""}`}
       className="group pointer-events-auto absolute left-0 top-0 flex flex-col items-center outline-none"
       // The dot's centre (20px down) sits exactly on the star's map position, so lines meet it.
       style={{ transform: atWorld(worldPos(skill), "translate(-50%, -20px)"), ["--track" as string]: hue }}
     >
       <span className="relative grid h-10 w-10 place-items-center">
+        {step != null && (
+          <span aria-hidden className="absolute -right-1 -top-1 z-10 grid h-5 min-w-5 place-items-center rounded-full bg-[hsl(var(--glow-completed))] px-1 text-[11px] font-bold leading-none text-background shadow-[0_0_10px_hsl(var(--glow-completed)/0.6)]">
+            {step}
+          </span>
+        )}
         {ignite && (
           <>
             <span ref={flash} aria-hidden className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle,hsl(45_100%_90%),hsl(var(--glow-completed)/0.7)_30%,transparent_68%)] opacity-0" />
@@ -66,7 +73,7 @@ export const SkillStar = ({ skill, dimmed, ignite, appear, pending, onSelect, on
             "rounded-full transition-[opacity,transform] duration-300 [@media(hover:hover)]:group-hover:scale-125 group-focus-visible:scale-125",
             state === "mastered" && "h-4 w-4 bg-[hsl(var(--track))] shadow-[0_0_18px_4px_hsl(var(--track)/0.6),inset_0_0_5px_hsl(var(--foreground))]",
             state === "available" && "h-4 w-4 border-2 border-[hsl(var(--track))] bg-background shadow-[0_0_12px_hsl(var(--track)/0.55)]",
-            (state === "locked" || state === "loading") && "h-2 w-2 bg-muted-foreground opacity-50",
+            (state === "locked" || state === "loading") && (step != null ? "h-3 w-3 bg-[hsl(var(--track))] shadow-[0_0_10px_hsl(var(--track)/0.6)]" : "h-2 w-2 bg-muted-foreground opacity-50"),
             dimmed && "opacity-20",
           )}
         />

@@ -33,14 +33,14 @@ const stars = skills.map((s) => {
 const star = (size: number) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 32 32"><path d="M16 3Q17.7 14.3 29 16Q17.7 17.7 16 29Q14.3 17.7 3 16Q14.3 14.3 16 3Z" fill="${GOLD}"/></svg>`;
 
-const fonts = `<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500&family=Syne:wght@800&display=block" rel="stylesheet">`;
+const fonts = `<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500&family=Plus+Jakarta+Sans:wght@800&display=block" rel="stylesheet">`;
 
 const card = `<!doctype html><html><head>${fonts}<style>
   * { margin: 0; box-sizing: border-box; }
   body { width: 1200px; height: 630px; overflow: hidden; color: hsl(228 100% 95%); font-family: Figtree, sans-serif;
     background: radial-gradient(circle at 78% 45%, hsl(240 50% 16%), transparent 60%), linear-gradient(hsl(232 59% 8%), hsl(250 45% 11%)); }
   .copy { position: absolute; left: 80px; top: 0; bottom: 0; width: 600px; display: flex; flex-direction: column; justify-content: center; }
-  h1 { font: 800 72px/1 Syne, sans-serif; letter-spacing: -0.02em; display: flex; align-items: center; }
+  h1 { font: 800 72px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: -0.02em; display: flex; align-items: center; }
   h1 svg { flex-shrink: 0; margin: 0 -3px; }
   p { margin-top: 28px; font-size: 36px; line-height: 1.2; font-weight: 500; }
   small { display: block; margin-top: 24px; font-size: 24px; text-wrap: balance; color: hsl(229 25% 64%); }

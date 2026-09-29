@@ -32,3 +32,16 @@ test("resetting HTML from its panel also resets CSS, which builds on it", async 
   await expect(star(page, "css", "locked")).toBeVisible();
   await expectDashboardXp(page, 0);
 });
+
+test("selecting a locked star lays out its learning path on the map and in the panel", async ({ page }) => {
+  await skipIntro(page);
+  await page.goto("/");
+  await star(page, "react", "locked").click();
+
+  const path = page.getByRole("list").filter({ has: page.getByRole("link", { name: /React/ }) }).first();
+  await expect(page.getByRole("heading", { name: "Your learning path" })).toBeVisible();
+  await expect(path.getByRole("listitem")).toHaveText([/HTML/, /JavaScript/, /CSS/, /React/]);
+  // The panel is modal, so the map is hidden from the accessibility tree while it is open.
+  await expect(page.locator("[data-star=html]")).toHaveAttribute("aria-label", "HTML, available, step 1 of your path");
+  await expect(page.getByRole("link", { name: "Start with HTML" })).toBeVisible();
+});

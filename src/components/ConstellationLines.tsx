@@ -15,8 +15,8 @@ export interface Beams {
 // One line per prerequisite edge, in map units (the parent sets the group's transform).
 // Solid when both ends are mastered, brighter dashes when the edge leads to a star you can
 // take next. Strokes don't scale with zoom.
-export const ConstellationLines = forwardRef<SVGGElement, { skills: SkillState[]; focus: string | null; beams?: Beams | null }>(
-  ({ skills, focus, beams }, groupRef) => {
+export const ConstellationLines = forwardRef<SVGGElement, { skills: SkillState[]; focus: string | null; beams?: Beams | null; path?: Set<string> | null }>(
+  ({ skills, focus, beams, path: route }, groupRef) => {
     const byId = new Map(skills.map((s) => [s.id, s]));
     return (
       <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
@@ -28,7 +28,9 @@ export const ConstellationLines = forwardRef<SVGGElement, { skills: SkillState[]
               const lit = from.mastered && to.mastered;
               const path = from.mastered && to.unlocked && !to.mastered;
               const hue = trackById.get(to.track)!.hue;
-              const dim = focus && focus !== to.track && focus !== from.track;
+              // With a star selected, only the edges along its learning path stay visible.
+              const onRoute = !!route && route.has(from.id) && route.has(to.id);
+              const dim = route ? !onRoute : focus && focus !== to.track && focus !== from.track;
               const a = worldPos(from);
               const b = worldPos(to);
               return (
@@ -36,12 +38,12 @@ export const ConstellationLines = forwardRef<SVGGElement, { skills: SkillState[]
                   key={`${reqId}-${to.id}`}
                   x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                   vectorEffect="non-scaling-stroke"
-                  strokeWidth={lit ? 1.5 : 1}
+                  strokeWidth={lit || onRoute ? 1.8 : 1}
                   strokeDasharray={lit ? undefined : "3 5"}
                   // style, not attributes: presentation attributes can't use var()
                   style={{
-                    stroke: lit || path ? `hsl(${hue})` : "hsl(var(--muted-foreground))",
-                    strokeOpacity: dim ? 0.06 : lit ? 0.8 : path ? 0.6 : 0.3,
+                    stroke: lit || path || onRoute ? `hsl(${hue})` : "hsl(var(--muted-foreground))",
+                    strokeOpacity: dim ? 0.06 : lit || onRoute ? 0.9 : path ? 0.6 : 0.3,
                   }}
                   className="transition-[stroke-opacity] duration-300"
                 />

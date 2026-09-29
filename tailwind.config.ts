@@ -16,7 +16,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Figtree", "system-ui", "sans-serif"],
-        display: ["Syne", "Figtree", "sans-serif"],
+        display: ["Plus Jakarta Sans", "Figtree", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

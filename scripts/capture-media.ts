@@ -63,6 +63,18 @@ for (const [name, path] of shots) {
   await page.screenshot({ path: `${OUT}${name}.png` });
 }
 
+// A far-away star selected: its learning path lit on the map, and the lesson preview.
+await page.goto(BASE);
+await settle(page);
+await page.getByRole("button", { name: /^LLM Apps, locked/ }).click();
+await settle(page, 1500);
+await page.screenshot({ path: `${OUT}path.png` });
+
+// A lesson page: path, what you'll learn, assignment.
+await page.goto(`${BASE}/learn?skill=react`);
+await settle(page, 2000);
+await page.screenshot({ path: `${OUT}lesson.png` });
+
 // Skill check mid-question, with feedback showing.
 await page.goto(`${BASE}/learn?skill=typescript&challenge=typescript-check`);
 await settle(page, 1500);
