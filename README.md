@@ -4,7 +4,7 @@
 
 **A star map of what to learn next.** Every skill is a star. Pass its skill check to light it up and unlock the stars it connects to.
 
-<!-- DEMO_LINK -->
+**[Open the live demo](https://skillverse-sable.vercel.app)**, no account needed · [How it's built](https://skillverse-sable.vercel.app/about)
 
 [![CI](https://github.com/aryansajiv19/SkillVerse/actions/workflows/ci.yml/badge.svg)](https://github.com/aryansajiv19/SkillVerse/actions/workflows/ci.yml)
 ![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)

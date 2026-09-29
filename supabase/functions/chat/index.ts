@@ -14,7 +14,9 @@ const cors = {
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
-const unavailable = () => json(502, { error: "The AI tutor is unavailable right now." });
+// `stage` says which hop failed (quota, model or crash) without leaking details.
+const unavailable = (stage: string, status?: number) =>
+  json(502, { error: "The AI tutor is unavailable right now.", stage, status });
 
 // The client sends the whole conversation; an hour of chat at the quota is a small fraction of this.
 const MAX_BODY = 1_000_000;
@@ -87,7 +89,7 @@ Deno.serve(async (req) => {
     if (quota.status === 401 || quota.status === 403) return json(401, { error: "Sign in to use the tutor." });
     if (!quota.ok) {
       console.error("quota error", quota.status, await quota.text());
-      return unavailable();
+      return unavailable("quota", quota.status);
     }
 
     const upstream = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
@@ -103,12 +105,12 @@ Deno.serve(async (req) => {
     if (upstream.status === 429) return json(429, { error: "The tutor is getting a lot of questions. Try again in a minute." });
     if (!upstream.ok || !upstream.body) {
       console.error("gemini error", upstream.status, await upstream.text());
-      return unavailable();
+      return unavailable("model", upstream.status);
     }
 
     return new Response(upstream.body, { headers: { ...cors, "Content-Type": "text/event-stream" } });
   } catch (e) {
     console.error("chat error", e);
-    return unavailable();
+    return unavailable("crash");
   }
 });
