@@ -3,6 +3,9 @@ import {
   achievements,
   activityCalendar,
   completionTimes,
+  constellationStates,
+  distance,
+  newlyFormed,
   HEAT_LEVELS,
   HEAT_WEEKS,
   heatLevel,
@@ -191,5 +194,44 @@ describe("learningPath", () => {
   });
   it("crosses tracks", () => {
     expect(learningPath("llm-apps", new Set())).toContain("rest-apis");
+  });
+});
+
+describe("constellations", () => {
+  const all = new Set(skills.map((s) => s.id));
+  const archer = (m: Set<string>) => constellationStates(m).find((c) => c.id === "sagittarius")!;
+
+  it("holds every star each goal needs, and only edges between them", () => {
+    const c = archer(new Set());
+    expect(new Set(c.stars)).toEqual(
+      new Set(["html", "css", "javascript", "typescript", "react", "nextjs", "nodejs", "express", "rest-apis", "sql", "postgres", "auth"]),
+    );
+    for (const [from, to] of c.edges) expect(c.stars.includes(from) && c.stars.includes(to)).toBe(true);
+    expect(c.edges).toContainEqual(["postgres", "auth"]);
+  });
+
+  it("forms only when every star on the path is mastered", () => {
+    const stars = archer(new Set()).stars;
+    expect(archer(new Set(stars.slice(1)))).toMatchObject({ formed: false, done: stars.length - 1 });
+    expect(archer(new Set(stars)).formed).toBe(true);
+    expect(constellationStates(all).every((c) => c.formed)).toBe(true);
+  });
+
+  it("reports what the last star completed, once", () => {
+    const stars = new Set(archer(new Set()).stars);
+    expect(newlyFormed("auth", stars).map((c) => c.id)).toContain("sagittarius");
+    expect(newlyFormed("html", new Set(["html"]))).toEqual([]);
+  });
+
+  it("gives every constellation a real anchor star on its path", () => {
+    for (const c of constellationStates(new Set())) expect(c.stars).toContain(c.anchor);
+  });
+});
+
+describe("distance", () => {
+  it("is 0 for a star you can take now and counts the steps before a far one", () => {
+    expect(distance("html", new Set())).toBe(0);
+    expect(distance("react", new Set())).toBe(3);
+    expect(distance("react", new Set(["html", "css", "javascript"]))).toBe(0);
   });
 });

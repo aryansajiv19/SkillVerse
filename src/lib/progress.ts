@@ -1,6 +1,7 @@
 // Pure progress rules. XP itself is computed by the database (leaderboard view).
 import { Orbit, Sparkle, Sparkles, Star, type LucideIcon } from "lucide-react";
-import { skills, tracks, type SkillDef } from "@/content/skills";
+import { skillById, skills, tracks, type SkillDef } from "@/content/skills";
+import { constellations, type ConstellationDef } from "@/content/constellations";
 
 export const XP_PER_LEVEL = 500;
 
@@ -149,3 +150,44 @@ export const learningPath = (skillId: string, mastered: Set<string>): string[] =
   visit(skillId);
   return order;
 };
+
+export interface ConstellationState extends ConstellationDef {
+  /** The goals plus everything they need, in catalog order. */
+  stars: string[];
+  /** Prerequisite edges between its stars: the lines of the figure. */
+  edges: [from: string, to: string][];
+  done: number;
+  formed: boolean;
+}
+
+const closure = (ids: string[], into = new Set<string>()) => {
+  for (const id of ids) if (!into.has(id)) closure(skillById.get(id)!.requires, into.add(id));
+  return into;
+};
+
+/** A learning path's stars form its constellation once every one of them is mastered. */
+export const constellationStates = (mastered: Set<string>): ConstellationState[] =>
+  constellations.map((c) => {
+    const set = closure(c.goals);
+    const stars = skills.filter((s) => set.has(s.id)).map((s) => s.id);
+    const done = stars.filter((id) => mastered.has(id)).length;
+    return {
+      ...c,
+      stars,
+      edges: stars.flatMap((to) => skillById.get(to)!.requires.map((from) => [from, to] as [string, string])),
+      done,
+      formed: done === stars.length,
+    };
+  });
+
+/** Constellations that mastering `skillId` just completed. */
+export const newlyFormed = (skillId: string, mastered: Set<string>) => {
+  const before = new Set(mastered);
+  before.delete(skillId);
+  const was = new Set(constellationStates(before).filter((c) => c.formed).map((c) => c.id));
+  return constellationStates(mastered).filter((c) => c.formed && !was.has(c.id));
+};
+
+/** How many stars still stand between you and this one (0 when you can take it now). */
+export const distance = (skillId: string, mastered: Set<string>) =>
+  Math.max(0, learningPath(skillId, mastered).length - 1);

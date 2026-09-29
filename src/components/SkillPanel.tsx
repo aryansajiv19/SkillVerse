@@ -10,7 +10,8 @@ import {
   SheetTitle,
 } from "./ui/sheet";
 import { Button } from "./ui/button";
-import { learningPath, type SkillState } from "@/lib/progress";
+import { constellationStates, learningPath, type SkillState } from "@/lib/progress";
+import { ConstellationList } from "./ConstellationList";
 import { lessonTopics } from "@/content/lessons";
 import { resources } from "@/content/resources";
 import { skillById, trackById, unlocksOf } from "@/content/skills";
@@ -67,6 +68,7 @@ const PanelBody = ({ skill, title }: { skill: SkillState; title: RefObject<HTMLH
   const path = learningPath(skill.id, mastered);
   const topics = lessonTopics[skill.id] ?? [];
   const reading = resources[skill.id] ?? [];
+  const partOf = constellationStates(mastered).filter((c) => c.stars.includes(skill.id));
 
   const reset = () =>
     resetSkill.mutate(skill.id, {
@@ -144,6 +146,14 @@ const PanelBody = ({ skill, title }: { skill: SkillState; title: RefObject<HTMLH
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {partOf.length > 0 && (
+        <section aria-labelledby="constellation-heading">
+          <h3 id="constellation-heading" className="mb-1 text-sm font-semibold text-muted-foreground">Constellations</h3>
+          <p className="mb-3 text-sm text-muted-foreground">Every learning path is a constellation. Light all its stars and it forms on your map.</p>
+          <ConstellationList items={partOf} compact />
         </section>
       )}
 

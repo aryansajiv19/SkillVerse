@@ -12,7 +12,8 @@ import { usePanZoom } from "@/components/map/usePanZoom";
 import { useReducedMotion } from "@/components/map/useReducedMotion";
 import { GALAXY, WORLD, atWorld, boundsOf, trackBounds, worldPos, type Insets } from "@/components/map/geometry";
 import { useProgress } from "@/hooks/useProgress";
-import { learningPath, levelProgress, nextUp } from "@/lib/progress";
+import { constellationStates, distance, learningPath, levelProgress, newlyFormed, nextUp, type ConstellationState } from "@/lib/progress";
+import { toast } from "sonner";
 import { skillById, tracks, unlocksOf, type TrackId } from "@/content/skills";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +82,8 @@ interface LitSequence {
   phase: "frame" | "ignite";
   landed: Set<string>;
   message: string;
+  /** Constellations this star completed: they go supernova. */
+  formed: ConstellationState[];
 }
 
 const Index = () => {
@@ -161,7 +164,14 @@ const Index = () => {
     const targets = unlocksOf(skill.id)
       .map((u) => skills.find((s) => s.id === u.id)!)
       .filter((s) => s.unlocked && !s.mastered);
-    const message = `${skill.name} is lit.${targets.length ? ` Unlocked: ${targets.map((t) => t.name).join(", ")}.` : ""}`;
+    const formed = newlyFormed(skill.id, new Set(skills.filter((s) => s.mastered).map((s) => s.id)));
+    const message = [
+      `${skill.name} is lit.`,
+      targets.length ? `Unlocked: ${targets.map((t) => t.name).join(", ")}.` : "",
+      ...formed.map((c) => `${c.name} formed: every star on the ${c.path} path is lit.`),
+    ].filter(Boolean).join(" ");
+    const celebrate = () =>
+      formed.forEach((c) => toast(`${c.name} formed`, { description: `${c.figure}. Every star on the ${c.path} path is lit.` }));
     const box = boundsOf([skill, ...targets]);
 
     if (reduced) {
@@ -169,14 +179,16 @@ const Index = () => {
       clearLitParam();
       settleOn(skill.id);
       setAnnouncement(message);
+      celebrate();
       return;
     }
-    setLit({ id: skill.id, targets: targets.map((t) => t.id), phase: "frame", landed: new Set(), message });
+    setLit({ id: skill.id, targets: targets.map((t) => t.id), phase: "frame", landed: new Set(), message, formed });
     show(box, 900, 1.1);
     litTimers.current.push(
       setTimeout(() => {
         setLit((l) => l && { ...l, phase: "ignite" });
         setAnnouncement(message);
+        celebrate();
       }, 950),
     );
   }, [litParam, loading, intro, skills, reduced, show, clearLitParam, settleOn]);
@@ -195,7 +207,8 @@ const Index = () => {
       setLit(null);
       clearLitParam();
       settleOn(id);
-    }, lit.targets.length ? 700 : 1100);
+      // A supernova holds the moment a little longer.
+    }, (lit.targets.length ? 700 : 1100) + (lit.formed.length ? 1200 : 0));
     return () => clearTimeout(t);
   }, [lit, clearLitParam, settleOn]);
 
@@ -237,6 +250,9 @@ const Index = () => {
   const pathSteps = selected ? learningPath(selected.id, mastered) : null;
   const route = pathSteps ? new Set([...pathSteps, ...pathSteps.flatMap((id) => skills.find((s) => s.id === id)!.requires)]) : null;
   const lvl = levelProgress(stats.xp);
+  const shown = useMemo(() => constellationStates(new Set(display.filter((s) => s.mastered).map((s) => s.id))), [display]);
+  const formedEdges = new Set(shown.filter((c) => c.formed).flatMap((c) => c.edges.map(([a, b]) => `${a}-${b}`)));
+  const formingEdges = lit?.phase === "ignite" ? new Set(lit.formed.flatMap((c) => c.edges.map(([a, b]) => `${a}-${b}`))) : null;
 
   return (
     <div className="relative h-[100dvh] overflow-hidden">
@@ -246,7 +262,7 @@ const Index = () => {
           <ThreeGalaxyCanvas />
         </Suspense>
       </Decorative>
-      <ShootingStars />
+      <ShootingStars streak={stats.streak} />
       {/* Keeps the nav legible when the map is panned under it. */}
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[72px] bg-gradient-to-b from-background from-40% to-transparent" />
       <Navigation />
@@ -269,6 +285,8 @@ const Index = () => {
             skills={display}
             focus={focus}
             path={route}
+            formed={formedEdges}
+            forming={formingEdges}
             beams={
               lit?.phase === "ignite" && lit.targets.length
                 ? { from: lit.id, to: lit.targets, landed: lit.landed, onLand: (id) => setLit((l) => l && { ...l, landed: new Set(l.landed).add(id) }) }
@@ -293,6 +311,20 @@ const Index = () => {
               </div>
             </div>
           ))}
+          {/* A formed constellation's name, written under its anchor star. */}
+          {shown.filter((c) => c.formed).map((c) => (
+            <div
+              key={c.id}
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute left-0 top-0 whitespace-nowrap text-center font-display text-xs font-semibold text-[hsl(var(--glow-completed))] transition-opacity duration-300 [text-shadow:0_0_4px_hsl(var(--background)),0_0_8px_hsl(var(--background))]",
+                route && !c.stars.some((id) => route.has(id)) && "opacity-25",
+              )}
+              style={{ transform: atWorld(worldPos(skillById.get(c.anchor)!), "translate(-50%, 34px)") }}
+            >
+              {c.name}, {c.figure.replace("The", "the")}
+            </div>
+          ))}
           {tracks.map((t) => (
             <div key={t.id} role="group" aria-label={t.name} className="pointer-events-none absolute inset-0">
               {display
@@ -304,6 +336,8 @@ const Index = () => {
                     dimmed={route ? !route.has(s.id) : !!focus && focus !== s.track}
                     step={pathSteps && pathSteps.length > 1 && pathSteps.includes(s.id) ? pathSteps.indexOf(s.id) + 1 : undefined}
                     ignite={lit?.phase === "ignite" && lit.id === s.id}
+                    supernova={lit?.phase === "ignite" && lit.id === s.id && lit.formed.length > 0}
+                    distant={!loading && !s.unlocked && distance(s.id, mastered) >= 3}
                     appear={!!lit?.landed.has(s.id)}
                     pending={loading}
                     onSelect={() => {

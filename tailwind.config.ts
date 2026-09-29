@@ -72,6 +72,12 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        // Lines of a just-formed constellation: dark, then a bright flare that settles to gold.
+        "constellation-form": {
+          "0%": { strokeOpacity: "0", strokeWidth: "2.2" },
+          "35%": { strokeOpacity: "1", strokeWidth: "4" },
+          "100%": { strokeOpacity: "0.9", strokeWidth: "2.2" },
+        },
         "accordion-down": {
           from: {
             height: "0",
@@ -92,6 +98,7 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "constellation-form": "constellation-form 1.6s cubic-bezier(0.23, 1, 0.32, 1) 0.25s both",
       },
     },
   },

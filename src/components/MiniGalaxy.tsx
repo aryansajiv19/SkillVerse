@@ -1,5 +1,5 @@
 import { useId, useMemo } from "react";
-import { skillStates } from "@/lib/progress";
+import { constellationStates, skillStates } from "@/lib/progress";
 import { skills as catalog, trackById, tracks } from "@/content/skills";
 
 // Skill x/y are percentages of the full map, which is drawn on a roughly 16:10 screen.
@@ -28,15 +28,18 @@ export const MiniGalaxy = ({
   const id = useId();
   const states = useMemo(() => skillStates(mastered), [mastered]);
   const byId = new Map(states.map((s) => [s.id, s]));
+  const formed = constellationStates(mastered).filter((c) => c.formed);
+  const goldEdges = new Set(formed.flatMap((c) => c.edges.map(([a, b]) => `${a}-${b}`)));
   const lit = states.filter((s) => s.mastered);
   const desc = lit.length
     ? `${lit.length} of ${states.length} stars lit: ${lit.map((s) => s.name).join(", ")}.`
     : `No stars lit yet, 0 of ${states.length}.`;
+  const desc2 = formed.length ? ` Constellations formed: ${formed.map((c) => c.name).join(", ")}.` : "";
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={`${id}-t ${id}-d`} className={className}>
       <title id={`${id}-t`}>{title}</title>
-      <desc id={`${id}-d`}>{desc}</desc>
+      <desc id={`${id}-d`}>{desc + desc2}</desc>
 
       {labels.map((t) => (
         <text
@@ -56,6 +59,7 @@ export const MiniGalaxy = ({
         to.requires.map((reqId) => {
           const from = byId.get(reqId)!;
           const on = from.mastered && to.mastered;
+          const gold = goldEdges.has(`${reqId}-${to.id}`);
           const a = pos(from);
           const b = pos(to);
           return (
@@ -65,9 +69,9 @@ export const MiniGalaxy = ({
               y1={a.y}
               x2={b.x}
               y2={b.y}
-              stroke={on ? `hsl(${trackById.get(to.track)!.hue})` : "hsl(var(--muted-foreground))"}
-              strokeOpacity={on ? 0.75 : 0.25}
-              strokeWidth={on ? 0.5 : 0.35}
+              stroke={gold ? "hsl(var(--glow-completed))" : on ? `hsl(${trackById.get(to.track)!.hue})` : "hsl(var(--muted-foreground))"}
+              strokeOpacity={gold ? 0.9 : on ? 0.75 : 0.25}
+              strokeWidth={gold ? 0.7 : on ? 0.5 : 0.35}
               strokeDasharray={on ? undefined : "1 1.5"}
             />
           );
