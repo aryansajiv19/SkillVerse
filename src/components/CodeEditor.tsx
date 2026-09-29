@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Check, Circle, Lightbulb, Play, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +19,22 @@ const run = (c: CodeChallenge, code: string): Promise<TestResult[]> => {
   }
 };
 
-const Kbd = ({ children }: { children: ReactNode }) => (
+/**
+ * A ref that gets focus when `on` turns true (not when it starts true). Put it on whatever replaces a
+ * control that just disappeared or on what that control revealed, so keyboard focus doesn't fall to <body>.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export const useFocusWhen = <T extends HTMLElement>(on: boolean) => {
+  const ref = useRef<T>(null);
+  const was = useRef(on);
+  useEffect(() => {
+    if (on && !was.current) ref.current?.focus();
+    was.current = on;
+  }, [on]);
+  return ref;
+};
+
+const Kbd =({ children }: { children: ReactNode }) => (
   <kbd className="rounded border border-border bg-muted/60 px-1.5 py-0.5 font-sans text-[0.7rem] text-foreground/90">{children}</kbd>
 );
 
@@ -88,6 +103,7 @@ export const CodeEditor = ({ challenge, done, claiming, onPass }: {
   const passed = results?.filter((r) => r.pass).length ?? 0;
   const allPass = !!results?.length && passed === results.length;
   const rows = results ?? challenge.tests.map((t): TestResult => ({ label: labelOf(t), pass: false }));
+  const claimed = useFocusWhen<HTMLParagraphElement>(done);
 
   const onRun = async () => {
     // Ctrl+Enter can fire again before React re-renders, so guard with a ref, not state
@@ -120,11 +136,13 @@ export const CodeEditor = ({ challenge, done, claiming, onPass }: {
 
       <CodeArea value={code} onChange={setCode} onRun={onRun} label={`${challenge.lang.toUpperCase()} editor`} />
 
+      {/* No `disabled` on these: it would drop keyboard focus to <body>. busy and Math.min guard repeats instead. */}
       <div className="flex flex-wrap gap-3">
-        <Button onClick={onRun} disabled={running}>
+        <Button onClick={onRun} aria-disabled={running}>
           <Play aria-hidden />{running ? "Running…" : "Run tests"}
         </Button>
-        <Button variant="outline" onClick={() => setHints((h) => h + 1)} disabled={hints >= challenge.hints.length}>
+        <Button variant="outline" onClick={() => setHints((h) => Math.min(h + 1, challenge.hints.length))}
+          aria-disabled={hints >= challenge.hints.length} className="aria-disabled:opacity-50">
           <Lightbulb aria-hidden />{hints ? `Hint ${hints} of ${challenge.hints.length}` : "Show a hint"}
         </Button>
       </div>
@@ -159,9 +177,9 @@ export const CodeEditor = ({ challenge, done, claiming, onPass }: {
       </section>
 
       {allPass && (done ? (
-        <p className="text-sm text-muted-foreground">All tests pass. You've already claimed the XP for this one.</p>
+        <p ref={claimed} tabIndex={-1} className="text-sm text-muted-foreground outline-none">All tests pass. You've already claimed the XP for this one.</p>
       ) : (
-        <Button size="lg" onClick={onPass} disabled={claiming}>{claiming ? "Saving…" : `Claim +${challenge.xpReward} XP`}</Button>
+        <Button size="lg" onClick={() => claiming || onPass()} aria-disabled={claiming}>{claiming ? "Saving…" : `Claim +${challenge.xpReward} XP`}</Button>
       ))}
     </div>
   );

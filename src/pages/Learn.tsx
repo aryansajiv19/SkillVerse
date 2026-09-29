@@ -2,7 +2,8 @@ import { useId, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowUpRight, Check, Code, Gamepad2, Lock } from "lucide-react";
-import { PageShell } from "@/components/PageShell";
+import { PageShell, usePageTitle } from "@/components/PageShell";
+import { LoadError } from "@/components/social/states";
 import { CodeEditor } from "@/components/CodeEditor";
 import { QuizChallenge } from "@/components/QuizChallenge";
 import { CheatSheet } from "@/components/CheatSheet";
@@ -22,6 +23,13 @@ const missingFor = (skill: SkillState, skills: SkillState[]) =>
   skill.requires.filter((r) => !skills.find((s) => s.id === r)?.mastered);
 const stateOf = (s: SkillState) => (s.mastered ? "mastered" : s.unlocked ? "available" : "locked");
 const challengeUrl = (c: Challenge) => `/learn?skill=${c.skillId}&challenge=${c.id}`;
+
+/** What to show until the user's progress has loaded, or null once it has. Locked and mastered copy is only true after that. */
+const progressGate = ({ loading, error, history, retry }: ReturnType<typeof useProgress>) =>
+  // A failed background refetch keeps the last good data; only a failed first load blocks the page.
+  error && !history ? <LoadError what="your progress" error={error} onRetry={retry} />
+  : loading ? <p role="status" className="text-muted-foreground">Loading your progress…</p>
+  : null;
 
 const Learn = () => {
   const [params] = useSearchParams();
@@ -52,10 +60,11 @@ const StarMark = ({ skill, large }: { skill: SkillState; large?: boolean }) => {
 };
 
 const PickSkill = () => {
-  const { skills } = useProgress();
+  const progress = useProgress();
+  const { skills } = progress;
   return (
     <PageShell title="Learn" subtitle="Every star has a skill check. Pass it to light the star and unlock the stars it leads to. Most have practice exercises and a reading list too.">
-      <div className="grid gap-x-10 gap-y-12 md:grid-cols-2">
+      {progressGate(progress) ?? <div className="grid gap-x-10 gap-y-12 md:grid-cols-2">
         {tracks.map((t) => {
           const inTrack = skills.filter((s) => s.track === t.id);
           return (
@@ -86,13 +95,15 @@ const PickSkill = () => {
             </section>
           );
         })}
-      </div>
+      </div>}
     </PageShell>
   );
 };
 
 const SkillView = ({ skillId }: { skillId: string }) => {
-  const { skills, doneChallenges } = useProgress();
+  const progress = useProgress();
+  const { skills, doneChallenges } = progress;
+  const gate = progressGate(progress);
   const [sheetOpen, setSheetOpen] = useState(false);
   const sheetId = useId();
   const skill = skills.find((s) => s.id === skillId)!;
@@ -100,7 +111,11 @@ const SkillView = ({ skillId }: { skillId: string }) => {
   const check = challengeById.get(checkIdFor(skill.id));
   const practice = challengesForSkill(skill.id).filter((c) => c.type !== "quiz");
   const missing = missingFor(skill, skills);
-  const leadsTo = unlocksOf(skill.id).map((s) => s.name);
+  const isMastered = (id: string) => !!skills.find((s) => s.id === id)?.mastered;
+  const later = unlocksOf(skill.id).filter((s) => !isMastered(s.id));
+  // Passing only opens a skill whose other prerequisites are already mastered, like the celebration counts it.
+  const opens = later.filter((s) => s.requires.every((r) => r === skill.id || isMastered(r)));
+  const closer = later.filter((s) => !opens.includes(s));
   const reading = resources[skill.id] ?? [];
   const sheet = cheatSheets[skill.id];
 
@@ -113,6 +128,7 @@ const SkillView = ({ skillId }: { skillId: string }) => {
         <span style={{ color: `hsl(${track.hue})` }}>{track.name} · {track.constellation}</span>
       </div>
 
+      {gate ?? <>
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_19rem] xl:gap-16">
         <div className="space-y-12">
           <section aria-labelledby="check-heading" className="glass-panel rounded-2xl p-6 sm:p-8" style={{ ["--track" as string]: track.hue }}>
@@ -132,7 +148,8 @@ const SkillView = ({ skillId }: { skillId: string }) => {
                 <>
                   <p className="mt-4 max-w-prose leading-relaxed text-foreground/85">
                     {check.questions.length} questions, about a minute. You can miss one. Pass it to light {skill.name}
-                    {leadsTo.length ? ` and open up ${and.format(leadsTo)}.` : "."}
+                    {opens.length ? ` and open up ${names(opens.map((s) => s.id))}.` : "."}
+                    {closer.length > 0 && ` It also gets you closer to ${names(closer.map((s) => s.id))}.`}
                   </p>
                   <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
                     <Button asChild size="lg"><Link to={challengeUrl(check)}>Take the skill check</Link></Button>
@@ -176,8 +193,8 @@ const SkillView = ({ skillId }: { skillId: string }) => {
 
         <aside aria-labelledby="reading-heading" className="space-y-8">
           <section>
-            <h2 id="reading-heading" className="text-xl font-bold">Before the skill check</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Free, official guides worth reading first.</p>
+            <h2 id="reading-heading" className="text-xl font-bold">{skill.mastered ? "Reading list" : "Before the skill check"}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Free guides from trusted sources.</p>
             <ul className="mt-4 space-y-4">
               {reading.map((r) => (
                 <li key={r.url}>
@@ -205,6 +222,7 @@ const SkillView = ({ skillId }: { skillId: string }) => {
       </div>
 
       {sheet && <div id={sheetId} hidden={!sheetOpen} className="mt-12 scroll-mt-24"><CheatSheet data={sheet} /></div>}
+      </>}
     </PageShell>
   );
 };
@@ -215,8 +233,9 @@ const PracticeRow = ({ challenge: c, done, locked }: { challenge: Challenge; don
     <>
       <Icon className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       <span className="min-w-0 flex-1">
-        <span className="block font-semibold">{c.title}</span>
-        <span className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{c.description}</span>
+        {/* Locked rows aren't links, so they show the whole description and dim only the title */}
+        <span className={cn("block font-semibold", locked && "text-muted-foreground")}>{c.title}</span>
+        <span className={cn("mt-0.5 block text-sm leading-relaxed text-muted-foreground", !locked && "line-clamp-2")}>{c.description}</span>
       </span>
       <span className="shrink-0 pt-0.5 text-sm">
         {done ? <span className="flex items-center gap-1 text-[hsl(var(--glow-completed))]"><Check className="h-4 w-4" aria-hidden />Done</span>
@@ -228,7 +247,7 @@ const PracticeRow = ({ challenge: c, done, locked }: { challenge: Challenge; don
   return (
     <li>
       {locked ? (
-        <div className="flex gap-3 px-4 py-4 opacity-70 sm:px-5">{body}</div>
+        <div className="flex gap-3 px-4 py-4 sm:px-5">{body}</div>
       ) : (
         <Link to={challengeUrl(c)}
           className="flex gap-3 px-4 py-4 transition-colors hover:bg-card/70 focus-visible:bg-card/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-5">
@@ -240,17 +259,21 @@ const PracticeRow = ({ challenge: c, done, locked }: { challenge: Challenge; don
 };
 
 const ChallengeView = ({ challenge }: { challenge: Challenge }) => {
-  const { skills, loading, doneChallenges, completeChallenge, submitQuiz } = useProgress();
+  const progress = useProgress();
+  const { skills, doneChallenges, completeChallenge, submitQuiz } = progress;
   // Snapshot of mastery before this attempt, so "newly unlocked" is computed against it.
   const [celebrate, setCelebrate] = useState<{ xp: number; before: Set<string> } | null>(null);
   const skill = skills.find((s) => s.id === challenge.skillId)!;
+  // The h1 stays the skill name; the tab title names the exercise. Runs after PageShell's own title effect, so it wins.
+  usePageTitle(`${challenge.title} · ${skill.name}`);
+  const gate = progressGate(progress);
   const back = (
     <Link to={`/learn?skill=${skill.id}`} className="-ml-2 mb-6 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <ArrowLeft className="h-4 w-4" aria-hidden />Back to {skill.name}
     </Link>
   );
 
-  if (loading) return <PageShell title={skill.name}><p className="text-muted-foreground">Loading your progress…</p></PageShell>;
+  if (gate && !celebrate) return <PageShell title={skill.name}>{back}{gate}</PageShell>;
   if (!skill.unlocked && !celebrate)
     return (
       <PageShell title={challenge.title} subtitle={`${skill.name} is locked. Master ${names(missingFor(skill, skills))} to unlock it.`}>
@@ -289,9 +312,13 @@ const ChallengeView = ({ challenge }: { challenge: Challenge }) => {
   return (
     <PageShell title={skill.name} width="max-w-3xl">
       {back}
+      {/* On phones the tutor launcher floats ~136px above the bottom edge, above html's scroll-padding.
+          The extra scroll margin makes a focused control scroll clear of it. */}
+      <div className="max-sm:[&_:is(button,input,textarea)]:scroll-mb-20">
       {challenge.type === "quiz" && (
         <QuizChallenge
           challenge={challenge}
+          done={doneChallenges.has(challenge.id)}
           onSubmit={(answers) => submitQuiz.mutateAsync({ challengeId: challenge.id, answers })}
           onPassed={(r) => {
             if (r.mastered) setCelebrate({ xp: r.xp_awarded, before: new Set(skills.filter((s) => s.mastered).map((s) => s.id)) });
@@ -305,6 +332,7 @@ const ChallengeView = ({ challenge }: { challenge: Challenge }) => {
       {challenge.type === "game" && (
         <PlanetDebugger challenge={challenge} done={doneChallenges.has(challenge.id)} claiming={completeChallenge.isPending} onPass={claim} />
       )}
+      </div>
     </PageShell>
   );
 };
