@@ -2,6 +2,7 @@ import { forwardRef, useLayoutEffect, useRef } from "react";
 import type { SkillState } from "@/lib/progress";
 import { skillById, trackById } from "@/content/skills";
 import { worldPos, type Point } from "@/components/map/geometry";
+import { cn } from "@/lib/utils";
 
 /** Lines being drawn out of a freshly lit star, toward the stars it just unlocked. */
 export interface Beams {
@@ -15,8 +16,17 @@ export interface Beams {
 // One line per prerequisite edge, in map units (the parent sets the group's transform).
 // Solid when both ends are mastered, brighter dashes when the edge leads to a star you can
 // take next. Strokes don't scale with zoom.
-export const ConstellationLines = forwardRef<SVGGElement, { skills: SkillState[]; focus: string | null; beams?: Beams | null; path?: Set<string> | null }>(
-  ({ skills, focus, beams, path: route }, groupRef) => {
+export const ConstellationLines = forwardRef<SVGGElement, {
+  skills: SkillState[];
+  focus: string | null;
+  beams?: Beams | null;
+  path?: Set<string> | null;
+  /** Edges ("from-to") of constellations the learner has formed: drawn in gold. */
+  formed?: Set<string>;
+  /** Edges of constellations forming right now: they flare as the supernova goes off. */
+  forming?: Set<string> | null;
+}>(
+  ({ skills, focus, beams, path: route, formed, forming }, groupRef) => {
     const byId = new Map(skills.map((s) => [s.id, s]));
     return (
       <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
@@ -33,6 +43,24 @@ export const ConstellationLines = forwardRef<SVGGElement, { skills: SkillState[]
               const dim = route ? !onRoute : focus && focus !== to.track && focus !== from.track;
               const a = worldPos(from);
               const b = worldPos(to);
+              const gold = !!formed?.has(`${reqId}-${to.id}`);
+              if (gold) {
+                return (
+                  <line
+                    key={`${reqId}-${to.id}`}
+                    x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                    vectorEffect="non-scaling-stroke"
+                    strokeWidth={2.2}
+                    strokeLinecap="round"
+                    style={{
+                      stroke: "hsl(var(--glow-completed))",
+                      strokeOpacity: dim ? 0.08 : 0.9,
+                      filter: dim ? undefined : "drop-shadow(0 0 3px hsl(var(--glow-completed) / 0.7))",
+                    }}
+                    className={cn("transition-[stroke-opacity] duration-300", forming?.has(`${reqId}-${to.id}`) && "motion-safe:animate-constellation-form")}
+                  />
+                );
+              }
               return (
                 <line
                   key={`${reqId}-${to.id}`}

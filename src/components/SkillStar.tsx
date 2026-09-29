@@ -6,13 +6,17 @@ import { cn } from "@/lib/utils";
 
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 
-export const SkillStar = ({ skill, dimmed, step, ignite, appear, pending, onSelect, onFocus }: {
+export const SkillStar = ({ skill, dimmed, step, ignite, supernova, distant, appear, pending, onSelect, onFocus }: {
   skill: SkillState;
   dimmed: boolean;
   /** Position on the selected star's learning path, shown as a numbered badge. */
   step?: number;
   /** Play the one-off "lit" burst (first-time mastery). */
   ignite?: boolean;
+  /** This star completed a constellation: a bigger, slower shockwave on top of the burst. */
+  supernova?: boolean;
+  /** Locked and several stars away: drawn smaller and fainter, like a far-off star. */
+  distant?: boolean;
   /** Fade the dot in: this star was just unlocked. */
   appear?: boolean;
   /** Progress is still loading: show a neutral dot and don't offer the star yet. */
@@ -26,6 +30,8 @@ export const SkillStar = ({ skill, dimmed, step, ignite, appear, pending, onSele
   const dot = useRef<HTMLSpanElement>(null);
   const flash = useRef<HTMLSpanElement>(null);
   const ring = useRef<HTMLSpanElement>(null);
+  const shock = useRef<HTMLSpanElement>(null);
+  const shock2 = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!ignite) return;
@@ -36,6 +42,14 @@ export const SkillStar = ({ skill, dimmed, step, ignite, appear, pending, onSele
     ];
     return () => anims.forEach((a) => a?.cancel());
   }, [ignite]);
+
+  useEffect(() => {
+    if (!supernova) return;
+    const wave = (el: HTMLSpanElement | null, delay: number, to: number) =>
+      el?.animate([{ transform: "scale(0.3)", opacity: 1 }, { opacity: 0.85, offset: 0.55 }, { transform: `scale(${to})`, opacity: 0 }], { duration: 2400, delay, easing: EASE_OUT, fill: "backwards" });
+    const anims = [wave(shock.current, 200, 9), wave(shock2.current, 520, 14)];
+    return () => anims.forEach((a) => a?.cancel());
+  }, [supernova]);
 
   useLayoutEffect(() => {
     if (!appear) return;
@@ -67,13 +81,19 @@ export const SkillStar = ({ skill, dimmed, step, ignite, appear, pending, onSele
             <span ref={ring} aria-hidden className="pointer-events-none absolute inset-2 rounded-full border-[1.5px] border-[hsl(45_100%_85%)] opacity-0 shadow-[0_0_10px_hsl(var(--glow-completed)/0.8),inset_0_0_6px_hsl(var(--glow-completed)/0.6)]" />
           </>
         )}
+        {supernova && (
+          <>
+            <span ref={shock} aria-hidden className="pointer-events-none absolute inset-1 rounded-full border-[3px] border-[hsl(var(--glow-completed))] opacity-0 shadow-[inset_0_0_20px_hsl(var(--glow-completed)/0.7)]" />
+            <span ref={shock2} aria-hidden className="pointer-events-none absolute inset-2 rounded-full bg-[radial-gradient(circle_closest-side,hsl(45_100%_85%/0.35),hsl(var(--glow-completed)/0.25)_45%,transparent_70%)] opacity-0" />
+          </>
+        )}
         <span
           ref={dot}
           className={cn(
             "rounded-full transition-[opacity,transform] duration-300 [@media(hover:hover)]:group-hover:scale-125 group-focus-visible:scale-125",
             state === "mastered" && "h-4 w-4 bg-[hsl(var(--track))] shadow-[0_0_18px_4px_hsl(var(--track)/0.6),inset_0_0_5px_hsl(var(--foreground))]",
             state === "available" && "h-4 w-4 border-2 border-[hsl(var(--track))] bg-background shadow-[0_0_12px_hsl(var(--track)/0.55)]",
-            (state === "locked" || state === "loading") && (step != null ? "h-3 w-3 bg-[hsl(var(--track))] shadow-[0_0_10px_hsl(var(--track)/0.6)]" : "h-2 w-2 bg-muted-foreground opacity-50"),
+            (state === "locked" || state === "loading") && (step != null ? "h-3 w-3 bg-[hsl(var(--track))] shadow-[0_0_10px_hsl(var(--track)/0.6)]" : distant ? "h-1 w-1 bg-muted-foreground opacity-40" : "h-2 w-2 bg-muted-foreground opacity-50"),
             dimmed && "opacity-20",
           )}
         />

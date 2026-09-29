@@ -10,7 +10,8 @@ import { LoadError, Skeleton } from "@/components/social/states";
 import { Button } from "@/components/ui/button";
 import { usePublicProfile, type Stats } from "@/hooks/useProgress";
 import { useAuth } from "@/lib/auth";
-import { achievements, completionTimes } from "@/lib/progress";
+import { achievements, completionTimes, constellationStates } from "@/lib/progress";
+import { ConstellationList } from "@/components/ConstellationList";
 import { skills, tracks } from "@/content/skills";
 
 const share = async (stats: Stats) => {
@@ -127,6 +128,9 @@ const Profile = () => {
           <Section id="galaxy" title="Galaxy">
             <div className="glass-panel rounded-2xl p-4 sm:p-6">
               <MiniGalaxy mastered={mastered} title={`${stats.username}'s galaxy`} className="w-full" />
+              <div className="mt-5">
+                <ConstellationList items={constellationStates(mastered)} />
+              </div>
             </div>
           </Section>
           <Section id="activity" title="Activity">

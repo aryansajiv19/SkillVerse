@@ -132,6 +132,26 @@ const video = v.video();
 await vctx.close();
 console.log("video:", await video?.path());
 
+// A learner who has finished two paths: Lyra and Draco formed in gold, Draco going supernova.
+const cctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+await cctx.addInitScript(() => localStorage.setItem("skillverse:intro-seen", "1"));
+const c = await cctx.newPage();
+await c.goto(BASE);
+await c.waitForFunction(() => Object.keys(localStorage).some((k) => k.endsWith("-auth-token")));
+await c.evaluate(({ url, key }) => ((window as never as { __SV_ENV__: object }).__SV_ENV__ = { url, key }), {
+  url: process.env.VITE_SUPABASE_URL!,
+  key: process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
+});
+await master(c, ["html", "css", "javascript", "a11y", "tailwind", "typescript", "react", "nextjs", "git", "linux", "docker", "ci-cd", "kubernetes", "cloud", "iac"]);
+await c.goto(`${BASE}/?lit=iac`);
+await settle(c, 1250);
+await c.screenshot({ path: `${OUT}supernova.png` });
+await settle(c, 5000);
+await c.getByRole("button", { name: "Reset view" }).click();
+await settle(c, 1250);
+await c.screenshot({ path: `${OUT}constellations.png` });
+await cctx.close();
+
 await ctx.close();
 await browser.close();
 console.log("media written to", OUT);

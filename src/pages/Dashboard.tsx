@@ -7,8 +7,9 @@ import { MiniGalaxy } from "@/components/MiniGalaxy";
 import { AchievementList } from "@/components/social/AchievementList";
 import { LoadError, Skeleton } from "@/components/social/states";
 import { useProgress } from "@/hooks/useProgress";
-import { achievements, completionTimes, levelProgress, nextUp } from "@/lib/progress";
-import { skillById, trackById, tracks } from "@/content/skills";
+import { achievements, completionTimes, constellationStates, levelProgress, nextUp } from "@/lib/progress";
+import { ConstellationList } from "@/components/ConstellationList";
+import { skillById, trackById } from "@/content/skills";
 import { challengeById, checkIdFor } from "@/content/challenges";
 
 const Dashboard = () => {
@@ -178,31 +179,10 @@ const Dashboard = () => {
                 </div>
                 <div className="glass-panel rounded-2xl p-4 sm:p-5">
                   <MiniGalaxy mastered={mastered} title="Your galaxy" className="w-full" />
-                  <ul className="mt-4 space-y-3">
-                    {tracks.map((t) => {
-                      const inTrack = skills.filter((s) => s.track === t.id);
-                      const done = inTrack.filter((s) => s.mastered).length;
-                      return (
-                        <li key={t.id}>
-                          <div className="mb-1.5 flex justify-between text-sm">
-                            <span>{t.name}</span>
-                            <span className="text-muted-foreground">
-                              {done}/{inTrack.length}
-                            </span>
-                          </div>
-                          <div
-                            className="h-1.5 overflow-hidden rounded-full"
-                            style={{ background: `hsl(${t.hue} / 0.15)` }}
-                          >
-                            <div
-                              className="h-full rounded-full"
-                              style={{ width: `${(done / inTrack.length) * 100}%`, background: `hsl(${t.hue})` }}
-                            />
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <p className="mt-4 mb-3 text-sm text-muted-foreground">
+                    Every learning path is a constellation. Light all its stars and it forms, in gold, on your map.
+                  </p>
+                  <ConstellationList items={constellationStates(mastered)} />
                 </div>
               </section>
 
