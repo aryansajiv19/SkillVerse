@@ -78,7 +78,16 @@ export const useProgress = () => {
     },
   });
 
-  const refresh = () => qc.invalidateQueries();
+  // Wait only for this learner's own data; leaderboards and profiles refresh in the background,
+  // so a slow or busy query elsewhere can't hold a finished quiz on "Grading…".
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["leaderboard"] });
+    void qc.invalidateQueries({ queryKey: ["profile"] });
+    return Promise.all([
+      qc.invalidateQueries({ queryKey: ["completions", uid] }),
+      qc.invalidateQueries({ queryKey: ["stats", uid] }),
+    ]);
+  };
 
   /** Code challenges and games. Already-completed is fine (unique violation ignored). */
   const completeChallenge = useMutation({

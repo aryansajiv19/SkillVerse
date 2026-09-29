@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import type { User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "./supabase";
+import { errorMessage } from "./utils";
 
 interface Auth {
   user: User | null;
@@ -49,7 +50,7 @@ const ensureSession = () =>
 const oauthRedirect = () => `${window.location.origin}/settings`;
 
 const friendly = (e: unknown) => {
-  const message = e instanceof Error ? e.message : String(e);
+  const message = errorMessage(e);
   return /provider is not enabled|Unsupported provider/i.test(message)
     ? "GitHub sign-in isn't set up on this deployment yet."
     : message;
@@ -62,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const start = useCallback(() => {
     setError(null);
-    ensureSession().catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    ensureSession().catch((e) => setError(errorMessage(e)));
   }, []);
 
   useEffect(() => {

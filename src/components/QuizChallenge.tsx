@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useFocusWhen } from "@/components/CodeEditor";
 import { SKILL_MASTERY_XP, checkIdFor, type QuizChallenge as Quiz } from "@/content/challenges";
 import { checkAnswer, type AnswerFeedback, type QuizResult } from "@/hooks/useProgress";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 interface Props {
   challenge: Quiz;
@@ -45,7 +45,8 @@ export const QuizChallenge = ({ challenge, onSubmit, onPassed, done }: Props) =>
     try {
       await fn();
     } catch (e) {
-      setProblem(e instanceof Error ? e.message : String(e));
+      console.error(e);
+      setProblem(errorMessage(e));
     } finally {
       setBusy(false);
     }
