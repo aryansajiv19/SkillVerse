@@ -14,7 +14,7 @@
 
 </div>
 
-https://github.com/user-attachments/assets/9819f4b1-e009-4734-a834-6a4d9960273d
+https://github.com/user-attachments/assets/3262d27e-a3be-44c0-8916-d1989478a180
 
 ## Why I built it
 
