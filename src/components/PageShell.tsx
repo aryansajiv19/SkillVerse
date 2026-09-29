@@ -47,7 +47,7 @@ export const PageShell = ({ title, documentTitle = title, nameTitle = false, sub
       {/* pr-20 keeps the text clear of the tutor launcher; the bottom padding clears the phone tab bar */}
       <footer className={`container mx-auto px-4 sm:px-8 pb-[calc(var(--bottom-bar-height)_+_2rem)] text-sm text-muted-foreground ${width}`}>
         <p className="border-t border-border/50 pr-20 pt-6">
-          Started as a hackathon MVP<span aria-hidden> · </span>
+          Built by Aryan Sajiv<span aria-hidden> · </span>
           <a className={footerLink} href="https://github.com/aryansajiv19/SkillVerse">Source on GitHub</a>
           <span aria-hidden> · </span>
           <Link className={footerLink} to="/about">How it's built</Link>

@@ -435,7 +435,7 @@ const About = () => (
 
     <Section id="credits" title="Credits">
       <p className="mt-4 leading-relaxed text-foreground/85">
-        Started as a hackathon MVP built by Divyansh Jhajhria for our team; rebuilt into a full-stack app by Aryan Sajiv.
+        Built by Aryan Sajiv. The original hackathon version was made with Divyansh Jhajhria.
       </p>
       <p className="mt-3">
         <a
