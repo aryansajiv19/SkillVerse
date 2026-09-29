@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useFocusWhen } from "@/components/CodeEditor";
 import { SKILL_MASTERY_XP, checkIdFor, type QuizChallenge as Quiz } from "@/content/challenges";
 import { checkAnswer, type AnswerFeedback, type QuizResult } from "@/hooks/useProgress";
 import { cn } from "@/lib/utils";
@@ -10,9 +11,11 @@ interface Props {
   /** Grades on the server and records the result. */
   onSubmit: (answers: string[]) => Promise<QuizResult>;
   onPassed: (result: QuizResult) => void;
+  /** Already passed, so passing again adds no XP. */
+  done: boolean;
 }
 
-export const QuizChallenge = ({ challenge, onSubmit, onPassed }: Props) => {
+export const QuizChallenge = ({ challenge, onSubmit, onPassed, done }: Props) => {
   const [index, setIndex] = useState(0);
   const [choice, setChoice] = useState<number | null>(null);
   const [text, setText] = useState("");
@@ -23,6 +26,10 @@ export const QuizChallenge = ({ challenge, onSubmit, onPassed }: Props) => {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [hint, setHint] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  // The button pressed is replaced or hidden, so move focus to what it revealed.
+  const feedbackBox = useFocusWhen<HTMLDivElement>(!!feedback);
+  const hintText = useFocusWhen<HTMLParagraphElement>(hint);
+  const group = useId();
 
   const q = challenge.questions[index];
   const total = challenge.questions.length;
@@ -92,15 +99,16 @@ export const QuizChallenge = ({ challenge, onSubmit, onPassed }: Props) => {
 
   return (
     <div className="glass-panel space-y-6 rounded-2xl p-6 sm:p-8">
+      <h2 className="text-2xl font-extrabold sm:text-3xl">{challenge.title}</h2>
       <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
         <span>Question {index + 1} of {total}</span>
-        <span>+{reward} XP for passing</span>
+        <span>{done ? "Refresher, no XP" : `+${reward} XP for passing`}</span>
       </div>
       <div className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
         <div className="h-full bg-foreground transition-all" style={{ width: `${(index / total) * 100}%` }} />
       </div>
 
-      <h2 ref={heading} tabIndex={-1} id="question" className="font-sans text-xl font-semibold leading-snug outline-none">{q.question}</h2>
+      <h3 ref={heading} tabIndex={-1} id="question" className="font-sans text-xl font-semibold leading-snug outline-none">{q.question}</h3>
 
       {q.type === "fill-in-blank" ? (
         <Input
@@ -119,28 +127,28 @@ export const QuizChallenge = ({ challenge, onSubmit, onPassed }: Props) => {
           {q.options!.map((opt, i) => {
             const isAnswer = feedback && String(i) === feedback.answer;
             return (
-              <button
+              // Native radios, so Tab enters the group once and the arrow keys move the choice.
+              // The input is invisible but covers the whole option, so clicks land on it.
+              <label
                 key={opt}
-                role="radio"
-                aria-checked={choice === i}
-                disabled={!!feedback}
-                onClick={() => setChoice(i)}
                 className={cn(
-                  "rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default",
+                  "relative rounded-xl border px-4 py-3 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
                   !feedback && (choice === i ? "border-foreground bg-foreground/10" : "hover:border-foreground/50"),
                   isAnswer && "border-emerald-400 bg-emerald-400/10",
                   feedback && choice === i && !isAnswer && "border-destructive bg-destructive/10",
                 )}
               >
+                <input type="radio" name={group} checked={choice === i} disabled={!!feedback} onChange={() => setChoice(i)}
+                  className="absolute inset-0 cursor-pointer appearance-none rounded-xl opacity-0 disabled:cursor-default" />
                 {opt}
-              </button>
+              </label>
             );
           })}
         </div>
       )}
 
       {feedback && (
-        <div className={cn("rounded-xl border p-4 text-sm", feedback.correct ? "border-emerald-400/40" : "border-destructive/40")} role="status">
+        <div ref={feedbackBox} tabIndex={-1} className={cn("rounded-xl border p-4 text-sm outline-none", feedback.correct ? "border-emerald-400/40" : "border-destructive/40")}>
           <p className="mb-1 font-semibold">{feedback.correct ? "Correct" : `Not quite. The answer is "${correctText}".`}</p>
           <p className="text-muted-foreground">{feedback.explanation}</p>
         </div>
@@ -149,12 +157,13 @@ export const QuizChallenge = ({ challenge, onSubmit, onPassed }: Props) => {
 
       <div className="flex items-center justify-between gap-3">
         {q.hint && !feedback ? (
-          hint ? <p className="text-sm text-muted-foreground">{q.hint}</p> : <Button variant="ghost" size="sm" onClick={() => setHint(true)}>Show hint</Button>
+          hint ? <p ref={hintText} tabIndex={-1} className="text-sm text-muted-foreground outline-none">{q.hint}</p> : <Button variant="ghost" size="sm" onClick={() => setHint(true)}>Show hint</Button>
         ) : <span />}
+        {/* aria-disabled while busy (check and next guard it) so a keyboard user's focus stays on the button */}
         {feedback ? (
-          <Button onClick={next} disabled={busy}>{index < total - 1 ? "Next question" : busy ? "Grading…" : "Finish"}</Button>
+          <Button onClick={next} aria-disabled={busy}>{index < total - 1 ? "Next question" : busy ? "Grading…" : "Finish"}</Button>
         ) : (
-          <Button onClick={check} disabled={!value || busy}>{busy ? "Checking…" : "Check answer"}</Button>
+          <Button onClick={check} disabled={!value} aria-disabled={busy}>{busy ? "Checking…" : "Check answer"}</Button>
         )}
       </div>
     </div>

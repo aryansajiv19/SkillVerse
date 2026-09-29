@@ -17,6 +17,14 @@ describe("runJs", () => {
     expect(r.every((x) => !x.pass && x.detail?.includes("SyntaxError"))).toBe(true);
   });
 
+  it("explains a top-level return instead of failing inside the runner", () => {
+    expect(runJs("return 1", [t("1", 1)])[0].detail).toBe("Error: Your code has a return statement outside a function");
+  });
+
+  it("reports a thrown value it can't format", () => {
+    expect(captureLogs("const o = {}; o.o = o; throw o;").error).toBe("threw [object Object]");
+  });
+
   it("isolates runtime errors per test", () => {
     const r = runJs("const f = (x) => x.length", [t("f('ab')", 2), t("f(null)", 0)]);
     expect(r.map((x) => x.pass)).toEqual([true, false]);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Lightbulb, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CodeArea } from "@/components/CodeEditor";
+import { CodeArea, useFocusWhen } from "@/components/CodeEditor";
 import type { GameChallenge } from "@/content/challenges";
 import { deepEqual, runLogsSandboxed, type RunOutput } from "@/lib/runner";
 import { cn } from "@/lib/utils";
@@ -105,6 +105,8 @@ export const PlanetDebugger = ({ challenge, done, claiming, onPass }: {
   const busy = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const repaired = useRef<HTMLParagraphElement>(null);
+  const claimed = useFocusWhen<HTMLParagraphElement>(done);
+  const hintText = useFocusWhen<HTMLParagraphElement>(hint);
 
   // After each step, move focus to the new heading or result so keyboard and screen reader users follow along.
   useEffect(() => {
@@ -136,12 +138,12 @@ export const PlanetDebugger = ({ challenge, done, claiming, onPass }: {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {won && !done && (
-            <Button size="lg" onClick={onPass} disabled={claiming}>{claiming ? "Saving…" : `Claim +${challenge.xpReward} XP`}</Button>
+            <Button size="lg" onClick={() => claiming || onPass()} aria-disabled={claiming}>{claiming ? "Saving…" : `Claim +${challenge.xpReward} XP`}</Button>
           )}
           <Button size="lg" variant={won && !done ? "outline" : "default"} onClick={() => goTo(0, Date.now())}>
             {won ? "Play again" : "Start repairs"}
           </Button>
-          {done && <p className="text-sm text-muted-foreground">You've already claimed the XP for this game.</p>}
+          {done && <p ref={claimed} tabIndex={-1} className="text-sm text-muted-foreground outline-none">You've already claimed the XP for this game.</p>}
           {!done && !won && <p className="text-sm text-muted-foreground">+{challenge.xpReward} XP when every planet is repaired</p>}
         </div>
       </div>
@@ -206,14 +208,18 @@ export const PlanetDebugger = ({ challenge, done, claiming, onPass }: {
         <>
           <CodeArea value={code} onChange={setCode} onRun={check} label={`${planet.name} code`} className="min-h-[180px]" />
           <div className="flex flex-wrap gap-3">
-            <Button onClick={check} disabled={running}><Play aria-hidden />{running ? "Running…" : "Run the fix"}</Button>
+            {/* aria-disabled, not disabled, so keyboard focus stays put; busy guards repeat runs */}
+            <Button onClick={check} aria-disabled={running}><Play aria-hidden />{running ? "Running…" : "Run the fix"}</Button>
             {hint ? (
-              <p className="flex items-center gap-2 text-sm text-foreground/80"><Lightbulb className="h-4 w-4 shrink-0 text-[hsl(var(--glow-completed))]" aria-hidden />{planet.hint}</p>
+              <p ref={hintText} tabIndex={-1} className="flex items-center gap-2 text-sm text-foreground/80 outline-none"><Lightbulb className="h-4 w-4 shrink-0 text-[hsl(var(--glow-completed))]" aria-hidden />{planet.hint}</p>
             ) : (
               <Button variant="outline" onClick={() => setHint(true)}><Lightbulb aria-hidden />Show a hint</Button>
             )}
           </div>
-          {output && <p role="status" className="sr-only">{output.error ? `Error: ${output.error}` : "Output doesn't match yet."}</p>}
+          {/* Always mounted, and "Running…" first, so every run changes the text and gets announced */}
+          <p role="status" className="sr-only">
+            {running ? "Running…" : output ? (output.error ? `Error: ${output.error}` : "Output doesn't match yet.") : ""}
+          </p>
         </>
       )}
     </div>

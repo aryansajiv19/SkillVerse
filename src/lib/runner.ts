@@ -33,7 +33,14 @@ export const fmt = (v: unknown): string => {
   return String(v);
 };
 
-const errorText = (e: unknown) => (e instanceof Error ? String(e) : `threw ${fmt(e)}`);
+// Must never throw: learners can throw circular objects or ones with throwing getters.
+const errorText = (e: unknown) => {
+  try {
+    return e instanceof Error ? String(e) : `threw ${fmt(e)}`;
+  } catch {
+    return `threw ${Object.prototype.toString.call(e)}`;
+  }
+};
 
 export const deepEqual = (a: unknown, b: unknown): boolean => {
   if (a === b || (Number.isNaN(a) && Number.isNaN(b))) return true;
@@ -49,9 +56,13 @@ const sandboxConsole = (logs: string[]) => {
 };
 
 /** Runs `code` once and returns an evaluator that can see its top-level declarations. */
-const load = (code: string, logs: string[]) =>
+const load = (code: string, logs: string[]) => {
   // Direct eval inside the returned closure sees the learner's declarations.
-  new Function("console", `${code}\n;return (__expr) => eval(__expr);`)(sandboxConsole(logs)) as (expr: string) => unknown;
+  const evaluate: unknown = new Function("console", `${code}\n;return (__expr) => eval(__expr);`)(sandboxConsole(logs));
+  // A top-level `return` in the learner's code exits before ours does.
+  if (typeof evaluate !== "function") throw new Error("Your code has a return statement outside a function");
+  return evaluate as (expr: string) => unknown;
+};
 
 const labelOf = (t: JsTest) => t.label ?? `${t.expr} → ${fmt(t.expected)}`;
 

@@ -16,7 +16,7 @@ export const CheatSheet = ({ data }: { data: CheatSheetData }) => (
   <section aria-labelledby={`sheet-${data.skillId}`} className="glass-panel rounded-2xl p-6 sm:p-8">
     <h2 id={`sheet-${data.skillId}`} className="text-2xl font-bold">{data.title}</h2>
     <p className="mt-1 text-muted-foreground">{data.description}</p>
-    <div className="mt-8 grid gap-x-10 gap-y-8 md:grid-cols-2">
+    <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
       {data.sections.map((section) => (
         <div key={section.title}>
           <h3 className="mb-3 font-sans text-base font-semibold text-foreground/90">{section.title}</h3>
