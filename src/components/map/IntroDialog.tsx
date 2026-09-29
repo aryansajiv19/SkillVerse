@@ -30,7 +30,7 @@ export const IntroDialog = ({ open, onChoose, onCloseAutoFocus }: {
                     key={t.id}
                     type="button"
                     onClick={() => onChoose(t.id)}
-                    className="rounded-xl border bg-card/60 p-4 text-left transition-[border-color,transform] duration-150 hover:border-[hsl(var(--track))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
+                    className="flex flex-col justify-start rounded-xl border bg-card/60 p-4 text-left transition-[border-color,transform] duration-150 hover:border-[hsl(var(--track))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
                     style={{ ["--track" as string]: t.hue }}
                   >
                     <span className="block font-display text-lg font-bold" style={{ color: `hsl(${t.hue})` }}>{t.name}</span>
@@ -40,7 +40,7 @@ export const IntroDialog = ({ open, onChoose, onCloseAutoFocus }: {
               </div>
             </div>
             <Dialog.Close asChild>
-              <Button variant="ghost" className="px-0 text-muted-foreground hover:bg-transparent hover:text-foreground">
+              <Button variant="ghost" className="px-0 text-muted-foreground max-sm:h-11 hover:bg-transparent hover:text-foreground">
                 Show me the whole map
               </Button>
             </Dialog.Close>

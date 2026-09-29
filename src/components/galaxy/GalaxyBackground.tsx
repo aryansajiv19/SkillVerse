@@ -65,7 +65,20 @@ export const GalaxyBackground = ({ starCount = 8000 }: GalaxyBackgroundProps) =>
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     
+    // Round, soft-edged points: without a sprite, near points render as grey squares that read as locked skills.
+    const dot = document.createElement("canvas");
+    dot.width = dot.height = 32;
+    const ctx = dot.getContext("2d");
+    if (ctx) {
+      const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+      g.addColorStop(0, "#fff");
+      g.addColorStop(1, "#000");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 32, 32);
+    }
+
     const material = new THREE.PointsMaterial({
+      alphaMap: new THREE.CanvasTexture(dot),
       size: 0.015, // Smaller micro-stars
       vertexColors: true,
       transparent: true,

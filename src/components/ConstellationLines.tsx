@@ -26,7 +26,7 @@ export const ConstellationLines = forwardRef<SVGGElement, { skills: SkillState[]
               if (beams && beams.from === reqId && beams.to.includes(to.id) && !beams.landed.has(to.id)) return null;
               const from = byId.get(reqId) ?? { ...skillById.get(reqId)!, mastered: false };
               const lit = from.mastered && to.mastered;
-              const path = from.mastered && !to.mastered;
+              const path = from.mastered && to.unlocked && !to.mastered;
               const hue = trackById.get(to.track)!.hue;
               const dim = focus && focus !== to.track && focus !== from.track;
               const a = worldPos(from);

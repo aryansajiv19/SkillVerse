@@ -6,18 +6,21 @@ import { cn } from "@/lib/utils";
 
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 
-export const SkillStar = ({ skill, dimmed, ignite, appear, onSelect, onFocus }: {
+export const SkillStar = ({ skill, dimmed, ignite, appear, pending, onSelect, onFocus }: {
   skill: SkillState;
   dimmed: boolean;
   /** Play the one-off "lit" burst (first-time mastery). */
   ignite?: boolean;
   /** Fade the dot in: this star was just unlocked. */
   appear?: boolean;
+  /** Progress is still loading: show a neutral dot and don't offer the star yet. */
+  pending?: boolean;
   onSelect: () => void;
+  /** Keyboard focus only: a mouse press that panned the map would move the star from under the click. */
   onFocus?: () => void;
 }) => {
   const hue = trackById.get(skill.track)!.hue;
-  const state = skill.mastered ? "mastered" : skill.unlocked ? "available" : "locked";
+  const state = pending ? "loading" : skill.mastered ? "mastered" : skill.unlocked ? "available" : "locked";
   const dot = useRef<HTMLSpanElement>(null);
   const flash = useRef<HTMLSpanElement>(null);
   const ring = useRef<HTMLSpanElement>(null);
@@ -42,8 +45,9 @@ export const SkillStar = ({ skill, dimmed, ignite, appear, onSelect, onFocus }: 
     <button
       type="button"
       data-star={skill.id}
+      disabled={pending}
       onClick={onSelect}
-      onFocus={onFocus}
+      onFocus={(e) => e.currentTarget.matches(":focus-visible") && onFocus?.()}
       aria-label={`${skill.name}, ${state}`}
       className="group pointer-events-auto absolute left-0 top-0 flex flex-col items-center outline-none"
       // The dot's centre (20px down) sits exactly on the star's map position, so lines meet it.
@@ -62,7 +66,7 @@ export const SkillStar = ({ skill, dimmed, ignite, appear, onSelect, onFocus }: 
             "rounded-full transition-[opacity,transform] duration-300 [@media(hover:hover)]:group-hover:scale-125 group-focus-visible:scale-125",
             state === "mastered" && "h-4 w-4 bg-[hsl(var(--track))] shadow-[0_0_18px_4px_hsl(var(--track)/0.6),inset_0_0_5px_hsl(var(--foreground))]",
             state === "available" && "h-4 w-4 border-2 border-[hsl(var(--track))] bg-background shadow-[0_0_12px_hsl(var(--track)/0.55)]",
-            state === "locked" && "h-2 w-2 bg-muted-foreground opacity-50",
+            (state === "locked" || state === "loading") && "h-2 w-2 bg-muted-foreground opacity-50",
             dimmed && "opacity-20",
           )}
         />
@@ -71,7 +75,7 @@ export const SkillStar = ({ skill, dimmed, ignite, appear, onSelect, onFocus }: 
       <span
         className={cn(
           "-mt-1 whitespace-nowrap rounded px-1 text-xs font-medium leading-4 [text-shadow:0_0_4px_hsl(var(--background)),0_0_8px_hsl(var(--background))] group-focus-visible:ring-2 group-focus-visible:ring-ring",
-          state === "locked" || dimmed ? "text-muted-foreground" : "text-foreground",
+          state === "locked" || state === "loading" || dimmed ? "text-muted-foreground" : "text-foreground",
         )}
       >
         {skill.name}

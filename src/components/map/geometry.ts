@@ -40,13 +40,34 @@ export const fitScale = (box: Box, vw: number, vh: number, safe: Insets) => {
 };
 
 /**
- * Default zoom for the whole galaxy. When it only fits by shrinking past readable (phones),
- * hold a readable zoom and let the map overflow sideways; but when height is the limit
- * (landscape phones), fit the stars themselves and let constellation names overflow.
+ * Default zoom for the whole galaxy. When it only fits by shrinking past readable (phones,
+ * short windows), hold a readable zoom and let the map overflow.
  */
-export const galaxyScale = (vw: number, vh: number, safe: Insets) => {
-  const starsOnly = (vh - safe.top - safe.bottom - 64) / (GALAXY.y1 - GALAXY.y0);
-  return clamp(fitScale(GALAXY, vw, vh, safe), clamp(starsOnly, 0.2, K_READABLE), K_MAX);
+export const galaxyScale = (vw: number, vh: number, safe: Insets) => clamp(fitScale(GALAXY, vw, vh, safe), K_READABLE, K_MAX);
+
+/**
+ * The default view: the whole galaxy, except that on an axis where it overflows at a readable
+ * zoom it centres on the `home` points (the learner's next stars) instead: on their extent
+ * when that fits, otherwise on their mean, which leans toward where most of them are.
+ */
+export const defaultView = (vw: number, vh: number, safe: Insets, home: Point[] = []): View => {
+  const k = galaxyScale(vw, vh, safe);
+  const whole = centerOn(GALAXY, k, vw, vh, safe);
+  if (!home.length) return whole;
+  const c = safeCenter(vw, vh, safe);
+  const aw = vw - safe.left - safe.right - LABEL_ROOM.left - LABEL_ROOM.right;
+  const ah = vh - safe.top - safe.bottom - LABEL_ROOM.top - LABEL_ROOM.bottom;
+  const centre = (vs: number[], room: number): number => {
+    const lo = Math.min(...vs);
+    const hi = Math.max(...vs);
+    return (hi - lo) * k <= room ? (lo + hi) / 2 : vs.reduce((a, v) => a + v, 0) / vs.length;
+  };
+  // Room for the home stars' dots; the margin left over holds their labels.
+  return {
+    k,
+    x: (GALAXY.x1 - GALAXY.x0) * k > aw ? c.x - centre(home.map((p) => p.x), vw - safe.left - safe.right) * k : whole.x,
+    y: (GALAXY.y1 - GALAXY.y0) * k > ah ? c.y - centre(home.map((p) => p.y), vh - safe.top - safe.bottom) * k : whole.y,
+  };
 };
 
 /** Zoom limits: out a little past the whole galaxy, in to K_MAX. */
