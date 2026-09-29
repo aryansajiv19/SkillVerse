@@ -16,11 +16,11 @@
 
 </div>
 
-## Why I revived it
+## Why I built it
 
-SkillVerse started as a hackathon MVP: a galaxy-themed skill tracker built by my teammate Divyansh Jhajhria with a lot of charm and no backend. Progress lived in `localStorage`, the leaderboard was hardcoded, the AI chat pointed at a service we no longer had, and completing a skill crashed on a stray `require()`.
+Most "learn to code" roadmaps are a long checklist: you can't see how skills connect, and nothing tells you whether you actually know something before moving on.
 
-I wanted to keep what made it fun, learning as a map you light up, and make it a real app: real accounts, real grading, a real leaderboard, and a codebase I'd be happy for someone to read.
+SkillVerse turns the roadmap into a map. Skills that build on each other are joined like stars in a constellation, and a star only lights up when you pass a short check graded on the server, so progress means something. It started as a hackathon project and grew into a full-stack app: real accounts, real grading, a live leaderboard, and a codebase I'd be happy for someone to read.
 
 ## How it works
 
@@ -163,6 +163,6 @@ Security model and trade-offs: [`SECURITY.md`](SECURITY.md).
 
 <div align="center">
 
-Started as a hackathon MVP by **Divyansh Jhajhria** · Rebuilt by **Aryan Sajiv** · [GitHub](https://github.com/aryansajiv19)
+Built by **Aryan Sajiv** · Original hackathon version with **Divyansh Jhajhria** · [GitHub](https://github.com/aryansajiv19)
 
 </div>
