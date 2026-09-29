@@ -12,9 +12,9 @@
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ecf8e?logo=supabase&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-e2e%20%2B%20axe-2ead33?logo=playwright&logoColor=white)
 
-<img src="docs/media/flow.gif" alt="Opening the TypeScript star, passing its skill check, and watching it light up on the map" width="720">
-
 </div>
+
+https://github.com/user-attachments/assets/9819f4b1-e009-4734-a834-6a4d9960273d
 
 ## Why I built it
 
@@ -31,6 +31,8 @@ SkillVerse turns the roadmap into a map. Skills that build on each other are joi
 5. **Keep going.** XP, levels, streaks, achievements, a public profile with an activity heatmap, and a leaderboard that updates live.
 
 No sign-up wall: every visitor gets a guest account on first load, and can connect GitHub to keep it.
+
+<p align="center"><img src="docs/media/flow.gif" alt="Opening the TypeScript star, passing its skill check, and watching it light up on the map" width="720"></p>
 
 <table>
   <tr>

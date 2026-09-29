@@ -40,3 +40,6 @@ supabase/.branches
 /playwright-report
 .vercel
 .env*
+
+# /brag working files
+brag-output/
