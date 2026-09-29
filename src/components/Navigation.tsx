@@ -39,10 +39,10 @@ const SearchButton = () => (
       >
         <Search className="h-4 w-4" aria-hidden />
         <span className="hidden xl:inline">Search</span>
-        <Kbd className="hidden lg:inline-flex" aria-hidden>{modKey}K</Kbd>
+        <Kbd className="hidden lg:inline-flex" aria-hidden>{isMac ? "⌘K" : "Ctrl K"}</Kbd>
       </button>
     </TooltipTrigger>
-    <TooltipContent className="lg:hidden">Search ({modKey}K)</TooltipContent>
+    <TooltipContent className="lg:hidden">Search ({isMac ? "⌘K" : "Ctrl+K"})</TooltipContent>
   </Tooltip>
 );
 

@@ -36,10 +36,10 @@ const Row = ({ r, mine }: { r: RowData; mine: boolean }) => (
         <Link to={`/u/${encodeURIComponent(r.username!)}`} className="truncate underline-offset-4 hover:underline">
           {r.username}
         </Link>
-        {mine && <span className="rounded-full border px-2 py-0.5 text-xs font-normal text-muted-foreground">you</span>}
+        {mine && <span className="hidden rounded-full border px-2 py-0.5 text-xs font-normal text-muted-foreground sm:inline">you</span>}
       </span>
       <span className="block text-xs font-normal text-muted-foreground sm:hidden">
-        Level {r.level}
+        {mine && "You · "}Level {r.level}
         {r.streak ? `, ${r.streak}-day streak` : ""}
       </span>
     </td>
@@ -86,7 +86,7 @@ const Leaderboard = () => {
       title="Leaderboard"
       subtitle={
         <>
-          Every learner, ranked by XP.
+          The top 50 learners, ranked by XP.
           <LiveStatus live={live} />
         </>
       }
@@ -102,11 +102,11 @@ const Leaderboard = () => {
         </div>
       ) : !data.length ? (
         <p className="text-muted-foreground">
-          No one's on the board yet.{" "}
+          No one's on the board yet. Earn XP to take first place:{" "}
           <Link to="/" className="text-foreground underline underline-offset-4">
-            Master a skill
-          </Link>{" "}
-          and take first place.
+            pass a skill check or finish a challenge
+          </Link>
+          .
         </p>
       ) : (
         <div className="glass-panel overflow-hidden rounded-2xl">
@@ -150,13 +150,13 @@ const Leaderboard = () => {
         </div>
       )}
 
-      {data && !me.loading && !me.stats.xp && (
+      {!!data?.length && !me.loading && !me.stats.xp && (
         <p className="mt-6 text-sm text-muted-foreground">
-          You're not on the board yet.{" "}
+          You're not on the board yet. Earn XP to join:{" "}
           <Link to="/" className="text-foreground underline underline-offset-4">
-            Master a skill
-          </Link>{" "}
-          to join.
+            pass a skill check or finish a challenge
+          </Link>
+          .
         </p>
       )}
     </PageShell>

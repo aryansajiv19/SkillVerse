@@ -42,12 +42,17 @@ const readStream = async (body: ReadableStream<Uint8Array>, onDelta: (text: stri
 };
 
 /**
- * Non-modal chat panel. The launcher sits bottom-right, above the phone tab bar
+ * Chat panel, non-modal from sm up (modal on phones, where it covers the page). The launcher sits bottom-right, above the phone tab bar
  * (--bottom-bar-height); opening focuses the message box, Escape closes, and focus
  * goes back to the launcher.
  */
 export const AIAssistant = () => {
   const [open, setOpen] = useState(false);
+  // Bumped on every request to open, so focus moves into the panel even when it is already open.
+  const [opens, setOpens] = useState(0);
+  // Below sm the panel covers most of the page, so it behaves as a modal there.
+  const [modal, setModal] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,22 +69,40 @@ export const AIAssistant = () => {
   const current = skillById.get(params.get("skill") ?? "")?.name;
 
   useEffect(() => {
-    const show = () => setOpen(true);
+    const show = () => {
+      setOpen(true);
+      setOpens((n) => n + 1);
+    };
     window.addEventListener(TUTOR_EVENT, show);
     return () => window.removeEventListener(TUTOR_EVENT, show);
   }, []);
 
   useEffect(() => {
     // In an effect rather than autoFocus: a closing modal (the command palette) traps focus until its cleanup runs.
-    if (open) messageBox.current?.focus();
+    // The message box is disabled once the tutor is known to be off, so focus the close button then.
+    if (open) (offline ? closeButton : messageBox).current?.focus();
     else if (wasOpen.current) launcher.current?.focus();
     wasOpen.current = open;
-  }, [open]);
+  }, [open, opens, offline]);
 
-  // The message box is disabled once the tutor is known to be off; keep focus inside the panel.
+  // On phones, make everything else inert so Tab can't reach controls hidden behind the panel.
   useEffect(() => {
-    if (offline) closeButton.current?.focus();
-  }, [offline]);
+    const el = panel.current;
+    if (!open || !el?.parentElement) return;
+    const mql = window.matchMedia("(max-width: 639px)");
+    // Toasts stay reachable: sonner renders them in a labelled section.
+    const others = [...el.parentElement.children].filter((c) => c !== el && !c.matches("section[aria-label]"));
+    const apply = () => {
+      setModal(mql.matches);
+      others.forEach((c) => c.toggleAttribute("inert", mql.matches));
+    };
+    apply();
+    mql.addEventListener("change", apply);
+    return () => {
+      mql.removeEventListener("change", apply);
+      others.forEach((c) => c.removeAttribute("inert"));
+    };
+  }, [open]);
 
   useEffect(() => {
     log.current?.scrollTo({ top: log.current.scrollHeight });
@@ -157,8 +180,9 @@ export const AIAssistant = () => {
 
   return (
     <div
+      ref={panel}
       role="dialog"
-      aria-modal="false"
+      aria-modal={modal}
       aria-labelledby="tutor-title"
       onKeyDown={(e) => {
         if (e.key === "Escape") {
@@ -173,7 +197,7 @@ export const AIAssistant = () => {
           <h2 id="tutor-title" className="font-display font-bold leading-tight">AI tutor</h2>
           <p className="text-xs text-muted-foreground">{current ? `Helping with ${current}` : "Hints first, not answers"}</p>
         </div>
-        <Button ref={closeButton} variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close tutor" className="hover:bg-foreground/10 hover:text-foreground">
+        <Button ref={closeButton} variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close tutor" className="h-11 w-11 sm:h-10 sm:w-10">
           <X aria-hidden />
         </Button>
       </div>
@@ -232,7 +256,7 @@ export const AIAssistant = () => {
           disabled={offline}
           maxLength={2000}
         />
-        <Button type="submit" size="icon" disabled={loading || offline || !input.trim()} aria-label="Send">
+        <Button type="submit" size="icon" className="h-11 w-11 shrink-0 sm:h-10 sm:w-10" disabled={loading || offline || !input.trim()} aria-label="Send">
           <Send aria-hidden />
         </Button>
       </form>

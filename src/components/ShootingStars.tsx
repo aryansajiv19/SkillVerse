@@ -40,6 +40,7 @@ export const ShootingStars = () => {
     let lastSpawn = performance.now();
     let nextGap = 4000 + Math.random() * 6000;
     let frame = 0;
+    let idle: ReturnType<typeof setTimeout> | undefined;
 
     const animate = (now: number) => {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -74,13 +75,16 @@ export const ShootingStars = () => {
         ctx.shadowBlur = 0;
         return true;
       });
-      frame = requestAnimationFrame(animate);
+      // Between meteors, sleep until the next one is due instead of clearing an empty canvas every frame.
+      if (stars.length) frame = requestAnimationFrame(animate);
+      else idle = setTimeout(() => (frame = requestAnimationFrame(animate)), lastSpawn + nextGap - performance.now());
     };
     frame = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(frame);
+      clearTimeout(idle);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [reduced]);
