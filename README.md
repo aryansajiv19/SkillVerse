@@ -2,9 +2,9 @@
 
 # SkillVerse
 
-**Every learning path is a constellation. The whole curriculum is a galaxy.** Every skill is a star with a lesson and free resources. Pick where you want to go, and SkillVerse lights up your personal path of stars to get there. Light every star on a path and it forms its constellation on your map.
+Personalised learning paths on an interactive skill graph, with server-graded knowledge checks.
 
-**[Open the live demo](https://skillverse-sable.vercel.app)**, no account needed · [How it's built](https://skillverse-sable.vercel.app/about)
+[Live demo](https://skillverse-sable.vercel.app) · [Architecture walkthrough](https://skillverse-sable.vercel.app/about) · [Security model](SECURITY.md)
 
 [![CI](https://github.com/aryansajiv19/SkillVerse/actions/workflows/ci.yml/badge.svg)](https://github.com/aryansajiv19/SkillVerse/actions/workflows/ci.yml)
 ![React 18](https://img.shields.io/badge/React-18-149eca?logo=react&logoColor=white)
@@ -16,85 +16,74 @@
 
 https://github.com/user-attachments/assets/14bd5aa6-041c-4cea-8e70-698c8ebd8937
 
-## Why I built it
+## Overview
 
-Most "learn to code" roadmaps are a long, flat checklist. You can't see how skills connect, you don't know what to learn next for the goal you actually have, and nothing tells you whether you've really understood something before moving on.
+SkillVerse models a software engineering curriculum as a directed graph of skills and renders it as a navigable galaxy. Selecting any skill produces a personalised learning path: the unmastered prerequisites in dependency order, each with a lesson, curated free resources, practice exercises and a knowledge check. Completing every skill on a career path forms that path's constellation on the learner's map.
 
-SkillVerse turns the roadmap into a sky you can navigate, a bit like The Odin Project with a sense of direction. Skills are stars, the lines between them are prerequisites, and every career path (full-stack, frontend, backend, AI, data, DevOps) is a constellation drawn through them. Click any star and it shows your personal path to it: the stars you still need, in order, each with a short lesson, hand-picked free resources, practice, and a knowledge check. Pass the check and the star lights up. Finish a path and its constellation forms. It started as a hackathon project and grew into a full-stack app with real accounts, server-side grading, a live leaderboard, and a codebase I'd be happy for someone to read.
+The backend is Supabase with no custom application server. PostgreSQL is the single authority for progress: quizzes are graded in the database, row-level security and least-privilege grants govern every table, and derived statistics are maintained by triggers. The project started as a hackathon prototype that stored all state in the browser, and was rebuilt as a full-stack application with authentication, server-side grading, a live leaderboard and a three-layer test suite.
 
-## How it works
+## Contents
 
-1. **Pick a destination.** Stars are grouped into regions of the galaxy: Frontend, Backend, Data & AI, and DevOps & Cloud. Prerequisites cross regions, so LLM Apps needs both ML Basics and REST APIs.
-2. **See your learning path.** Click any star, even one far away, and the map lights up the route to it: numbered stars in the order to learn them, skipping everything you've already mastered.
-3. **Learn from the lesson.** Each star is a lesson: what you'll learn, an assignment of hand-picked free resources (MDN, web.dev, react.dev, the official docs and so on), and a cheat sheet for many skills.
-4. **Practise.** Code challenges run real tests in your browser, plus a debugging game, for bonus XP.
-5. **Pass the knowledge check.** A short quiz graded by the database. Miss one question and you still pass. The star lights up, and the next stars on your path unlock.
-6. **Form constellations.** Learning paths are constellations named after real ones, such as Sagittarius, the Archer (full-stack developer), Cygnus, the Swan (AI engineer) and Draco, the Dragon (DevOps). Each one is a set of goal stars plus everything they need, so a path can span regions. Light its last star and it goes supernova: a shockwave, the figure flares in gold, and its name is written on your map, dashboard and public profile.
-7. **Keep going.** XP, levels, streaks, achievements, a public profile with an activity heatmap, and a leaderboard that updates live.
+- [Features](#features)
+- [Architecture](#architecture)
+- [Engineering highlights](#engineering-highlights)
+- [Performance](#performance)
+- [Security](#security)
+- [Testing](#testing)
+- [Getting started](#getting-started)
+- [Project structure](#project-structure)
+- [Known limitations](#known-limitations)
+- [Acknowledgements](#acknowledgements)
 
-The sky behaves like one, too. Stars several steps away from you are small and faint, like distant stars, and brighten as you get closer. Keep a streak going and a gold comet crosses the sky, its tail growing with every day. All of it is off with reduced motion.
+## Features
 
-No sign-up wall: every visitor gets a guest account on first load, and can connect GitHub to keep it.
-
-<p align="center"><img src="docs/media/flow.gif" alt="Opening the TypeScript star, passing its skill check, and watching it light up on the map" width="720"></p>
+- **Learning paths.** A topological ordering of unmastered prerequisites for any target skill, including prerequisites that cross tracks.
+- **Lessons.** Each skill has learning objectives, curated free resources (MDN, official documentation, web.dev and similar), a cheat sheet and practice.
+- **Knowledge checks.** Multiple-choice and fill-in questions graded by PostgreSQL, with per-question feedback. Passing masters the skill and unlocks its dependents.
+- **Code challenges.** JavaScript runs against test cases in a sandboxed Web Worker; HTML and CSS are validated with the browser's own parsers.
+- **Constellations.** Career paths (full-stack, frontend, backend, AI, data, DevOps) defined as goal skills plus their prerequisite closure. Completion is derived from mastery and visualised on the map.
+- **Progression.** XP, levels, current and best streaks, achievements, an activity heatmap and public profiles.
+- **Live leaderboard.** Rankings update through Supabase Realtime.
+- **Guest-first accounts.** Every visitor receives an anonymous account on first load, which can be upgraded in place by linking GitHub.
+- **AI tutor.** A streaming Gemini assistant behind a per-user quota enforced in the database.
+- **Accessibility.** Full keyboard navigation of the map, reduced-motion support and automated WCAG 2.1 AA checks.
 
 <table>
   <tr>
-    <td><img src="docs/media/path.jpg" alt="Selecting LLM Apps lights up a learning path across three regions"></td>
-    <td><img src="docs/media/lesson.jpg" alt="The React lesson: the path to it, what you'll learn, and an assignment of free resources"></td>
+    <td><img src="docs/media/path.jpg" alt="Selecting LLM Apps highlights a learning path across three tracks"></td>
+    <td><img src="docs/media/lesson.jpg" alt="The React lesson with its learning path, objectives and resources"></td>
   </tr>
   <tr>
-    <td align="center">Click any star to see your learning path to it</td>
-    <td align="center">Every star is a lesson with hand-picked free resources</td>
+    <td align="center">Learning path to a selected skill</td>
+    <td align="center">Lesson with objectives and resources</td>
   </tr>
   <tr>
-    <td><img src="docs/media/constellations.jpg" alt="Two finished learning paths, Lyra and Draco, formed in gold on the galaxy map"></td>
-    <td><img src="docs/media/supernova.jpg" alt="Terraform, the last star on the DevOps path, going supernova as Draco forms"></td>
+    <td><img src="docs/media/constellations.jpg" alt="Two completed paths drawn as gold constellations"></td>
+    <td><img src="docs/media/supernova.jpg" alt="The final skill on the DevOps path completing its constellation"></td>
   </tr>
   <tr>
-    <td align="center">Finished paths form their constellations, in gold</td>
-    <td align="center">The last star on a path goes supernova</td>
+    <td align="center">Completed paths rendered as constellations</td>
+    <td align="center">Constellation completion</td>
   </tr>
   <tr>
-    <td><img src="docs/media/galaxy.jpg" alt="The galaxy map with the Frontend region partly lit"></td>
-    <td><img src="docs/media/skill-check.jpg" alt="A skill check question with instant feedback"></td>
+    <td><img src="docs/media/skill-check.jpg" alt="A knowledge check question with feedback"></td>
+    <td><img src="docs/media/code-challenge.jpg" alt="A code challenge reporting failing test cases"></td>
   </tr>
   <tr>
-    <td align="center">The galaxy: hollow rings are open, filled stars are mastered</td>
-    <td align="center">Skill checks, graded on the server</td>
+    <td align="center">Server-graded knowledge check</td>
+    <td align="center">Sandboxed code challenge</td>
   </tr>
   <tr>
-    <td><img src="docs/media/code-challenge.jpg" alt="A code challenge showing which tests failed and what came back"></td>
-    <td><img src="docs/media/profile.jpg" alt="A public profile with stats, a mini galaxy and mastered skills"></td>
-  </tr>
-  <tr>
-    <td align="center">Code challenges run in a sandboxed Web Worker</td>
-    <td align="center">Public profiles</td>
-  </tr>
-  <tr>
+    <td><img src="docs/media/dashboard.jpg" alt="The dashboard with level, next steps and activity heatmap"></td>
     <td><img src="docs/media/leaderboard.jpg" alt="The live leaderboard"></td>
-    <td><img src="docs/media/dashboard.jpg" alt="The dashboard with level, next steps and an activity heatmap"></td>
   </tr>
   <tr>
+    <td align="center">Dashboard</td>
     <td align="center">Live leaderboard</td>
-    <td align="center">Dashboard and activity heatmap</td>
   </tr>
 </table>
 
-<p align="center"><img src="docs/media/mobile.jpg" alt="The galaxy on a phone, starting on the learner's next stars" width="280"></p>
-
-```mermaid
-flowchart LR
-    A([Open a star]) --> B[Skill check]
-    B -- each answer --> C[check_answer<br/>instant feedback]
-    B -- finish --> D[submit_quiz<br/>graded in Postgres]
-    D -- pass --> E[Mastery + XP<br/>in one transaction]
-    E --> F[Stats trigger]
-    F --> G[Realtime] --> H([Leaderboards update])
-    E --> I([Star ignites, neighbours unlock])
-```
-
-## Under the hood
+## Architecture
 
 ```mermaid
 flowchart TB
@@ -103,7 +92,7 @@ flowchart TB
         W[Web Worker<br/>code sandbox]
     end
     subgraph Supabase
-        AUTH[Auth<br/>guests + GitHub]
+        AUTH[Auth<br/>anonymous + GitHub]
         API[PostgREST<br/>RLS tables + RPCs]
         RT[Realtime]
         FN[Edge Function<br/>AI tutor]
@@ -124,69 +113,127 @@ flowchart TB
     CRON --> PUB
 ```
 
-The app has no custom server. Postgres enforces every rule through row-level security and a handful of functions, and one edge function relays the AI tutor. There's a deeper walkthrough in the app's **How it's built** page.
+| Layer | Technology |
+|---|---|
+| Client | React 18, TypeScript (strict), Vite, TanStack Query, React Router, Tailwind CSS, Radix UI, Three.js via React Three Fiber |
+| API | PostgREST over RLS-protected tables and four player-callable RPCs |
+| Database | PostgreSQL 17: `public` schema for application data, `private` schema (not exposed through the API) for the answer key and rate limits |
+| Auth | Supabase Auth: anonymous sessions, GitHub OAuth with PKCE, identity linking |
+| Realtime | Supabase Realtime on `player_stats` |
+| Serverless | Supabase Edge Function (Deno) for the AI tutor |
+| Scheduled jobs | `pg_cron`: nightly purge of inactive guest accounts and expired rate-limit windows |
+| Delivery | GitHub Actions (three jobs), Vercel, hosted Supabase |
 
-<p align="center"><img src="docs/media/about.jpg" alt="The How it's built page with the architecture diagram" width="720"></p>
+### Quiz submission flow
 
-A few decisions I'm proud of:
+```mermaid
+flowchart LR
+    A([Open a skill]) --> B[Knowledge check]
+    B -- each answer --> C[check_answer<br/>per-question feedback]
+    B -- submit --> D[submit_quiz<br/>graded in Postgres]
+    D -- pass --> E[Completion + mastery<br/>in one transaction]
+    E --> F[Statement-level triggers<br/>refresh player_stats]
+    F --> G[Realtime update<br/>to leaderboards]
+```
 
-* **The answers never reach the browser.** Quiz answers are written in [`content/challenges.ts`](content/challenges.ts), which nothing in the app imports. A build step splits them into a public catalog (questions, deterministically shuffled options) and a private answer key in Postgres that the API can't read. CI builds the app and fails if any explanation text appears in the shipped JavaScript.
-* **The database is the only authority.** Clients can't write masteries or stats at all, and for code challenges they can insert one column: the user id and timestamp come from the server, so activity can't be forged or backdated to fake a streak. A pgTAP suite asserts these as schema-wide invariants, so a new table or function that skips them fails CI.
-* **A leaderboard query that doesn't fall over.** The first version ranked each player by counting everyone with more XP. That's fine for a top-50 read, but the view is public, and filtering on rank ran that count for every player. [Measured](scripts/bench/README.md) at 10,000 players: **5,398 ms → 3.4 ms** with a single `rank()` window pass. At 50,000 players the old query hit a 120 s timeout; the new one takes 17.6 ms.
-* **Stats are maintained, not recomputed.** Statement-level triggers with transition tables refresh a player's stats once per write, however many rows it touched. Resetting a fully completed account takes 0.57 ms, versus 4.4 ms refreshing once per row. A test proves the incremental numbers always match a full recompute.
-* **Learner code runs in a disposable worker.** JavaScript challenges run in a Web Worker with no DOM or storage access, killed after 2 seconds. HTML and CSS are checked with the browser's own parsers, honouring the real cascade and selector lists.
-* **Constellations are derived, not stored.** A constellation is a few goal stars; its stars and lines are their prerequisite closure, computed from the catalog. Whether one has formed is a pure function of what you've mastered, so it can't drift out of sync, needs no new tables or policies, and resetting a skill un-forms it for free. The same function drives the map, the supernova, the dashboard and public profiles.
-* **Three.js stays off the pages that don't need it.** Routes are code-split, so the 227 kB (gzipped) galaxy renderer only loads on the map. A shared profile link loads a 156 kB entry bundle.
+## Engineering highlights
 
-## Things I learned the hard way
+**The answer key never reaches the client.** Questions and answers are authored in [`content/challenges.ts`](content/challenges.ts), which no application module imports. A build step ([`scripts/catalog.ts`](scripts/catalog.ts)) emits a public catalog with deterministically shuffled options (FNV-1a seed, mulberry32) and a SQL file that loads the answer key into the unexposed `private` schema. CI fails if the catalog SQL is stale or if any answer explanation appears in the production bundle ([`scripts/check-bundle.ts`](scripts/check-bundle.ts)).
 
-* **Put the right answer first and people will notice.** I wrote every multiple-choice question with the correct option first. A 164-agent review caught that "always pick A" passed four of the Backend checks. Options are now shuffled deterministically at build time, and a test fails if any position holds more than 40% of the answers.
-* **Waiting for everything is a bug.** Under load, a finished quiz could sit on "Grading…" because the submit waited for every query in the app to refetch, including the leaderboard. It now waits only for the learner's own data, which also made the parallel e2e suite stable.
-* **A free model tier can disappear under you.** The tutor's model was retired for new keys partway through. It's now one setting (`GEMINI_MODEL`), and the tutor degrades to a clear "not configured" state instead of breaking the page.
+**Grading and mastery are atomic.** `submit_quiz` is a `SECURITY DEFINER` function with a pinned `search_path`. It verifies the caller and the skill's prerequisites, applies a rate limit, grades against the private key, and records the completion and mastery in the same transaction. Composite primary keys with `ON CONFLICT DO NOTHING` make awards idempotent, so a retake or duplicate submission awards no additional XP.
 
-## Tests
+**Clients cannot forge progress.** Default privileges on the `public` schema are revoked and each role is granted only what it uses. For code challenges, clients hold an `INSERT` grant on a single column (`challenge_id`); `user_id` defaults to `auth.uid()` and `completed_at` to `now()`, so activity cannot be attributed to another user or backdated to inflate a streak.
 
-| What | How | Run it |
+**Statistics are maintained incrementally.** `player_stats` is refreshed by statement-level triggers using transition tables, so a bulk operation refreshes each affected player once rather than once per row. Streaks are computed with a gaps-and-islands query over UTC days. A database test asserts that trigger-maintained values always equal a full recomputation.
+
+**The leaderboard scales linearly.** Rank is computed with a single `rank()` window pass over an index on `(xp DESC, user_id)`. An earlier design computed rank per row by counting players with more XP; because the public view accepts arbitrary filters such as `?rank=eq.1000`, that design allowed one request to trigger quadratic work. See [Performance](#performance).
+
+**Derived state instead of stored state.** Learning paths and constellations are pure functions of the skill graph and the learner's mastered set. They cannot drift out of sync, need no additional tables or policies, and resetting a skill (a recursive CTE that also resets its dependents) updates them automatically.
+
+**Untrusted code is isolated.** Learner JavaScript runs in a disposable Web Worker with no DOM or storage access and is terminated after 2 seconds. Output formatting is hardened against circular structures and throwing getters.
+
+## Performance
+
+Benchmarks run against local Supabase (PostgreSQL 17) with synthetic players, inside transactions that roll back. Scripts and methodology are in [`scripts/bench/`](scripts/bench).
+
+| Measurement | Before | After |
+|---|---:|---:|
+| Leaderboard filtered by rank, 10,000 players | 5,398 ms (per-row count) | **3.4 ms** (window function) |
+| Leaderboard filtered by rank, 50,000 players | > 120 s (statement timeout) | **17.6 ms** |
+| Top-50 leaderboard read, 10,000 players | | 1.8 to 2.6 ms |
+| Stats refreshes when a fully completed account resets | 50 (row-level trigger) | **1** (statement-level trigger) |
+
+Route-level code splitting keeps the Three.js renderer (234 kB gzipped) out of every route except the map; the shared entry bundle is 160 kB gzipped.
+
+## Security
+
+The client is treated as fully untrusted, since every visitor holds a valid session. Controls enforced by the database and edge function include:
+
+- Row-level security on every table, least-privilege grants, and no RPC callable without a session.
+- `SECURITY DEFINER` functions limited to three player-callable entry points, each with a pinned `search_path` and an explicit caller check.
+- Per-account rate limits returning HTTP 429: 600 answer checks, 120 quiz submissions and 40 tutor messages per hour.
+- Input bounds on RPCs and a streamed 1 MB body cap on the edge function.
+- PKCE for OAuth, and email confirmation retained to prevent pre-account takeover through identity linking.
+
+Schema-wide invariants (RLS enabled everywhere, exact grants, pinned search paths, no anonymous RPC access) are asserted in [`supabase/tests/05_security.test.sql`](supabase/tests/05_security.test.sql), so an unprotected table or function fails CI. The full threat model and accepted trade-offs are documented in [SECURITY.md](SECURITY.md).
+
+## Testing
+
+| Suite | Scope | Command |
 |---|---|---|
-| Database | 63 pgTAP tests: RLS, grading, stats vs full recompute, streaks, rate limits, guest cleanup, privilege invariants | `npx supabase test db` |
-| Logic and content | 220 Vitest tests: catalog integrity, learning-path ordering, when constellations form, a reference solution proving every code challenge is solvable, the runner, theme contrast | `npm test` |
-| The whole app | 19 Playwright tests, including axe WCAG 2.1 AA scans of 10 pages with no rules disabled | `npm run test:e2e` |
-| Performance | Leaderboard and stats-trigger benchmarks at 10k and 50k players | [`scripts/bench/`](scripts/bench) |
+| Database (pgTAP) | 63 tests: write rules and authorization, grading, stats consistency, streaks, rate limits, scheduled jobs, schema-wide security invariants | `npx supabase test db` |
+| Unit (Vitest) | 220 tests: learning-path ordering, constellation completion, catalog integrity (a reference solution for every code challenge), sandbox runner, colour contrast | `npm test` |
+| End-to-end (Playwright) | 19 tests: learner flows against a local Supabase stack, plus axe WCAG 2.1 AA scans of 10 pages with no rules disabled | `npm run test:e2e` |
+| Benchmarks | Leaderboard and stats-trigger cost at 10,000 and 50,000 players | [`scripts/bench/`](scripts/bench) |
 
-Every push runs typecheck, lint, unit tests, a catalog freshness check, the build, the answer-leak check, the database tests and the e2e suite in [CI](.github/workflows/ci.yml).
+CI runs type checking, linting, unit tests, a catalog freshness check, the production build, the answer-leak check, the database tests and the end-to-end suite on every push.
 
-## Run it yourself
+## Getting started
 
-Needs Node 22+ and Docker.
+### Prerequisites
+
+- Node.js 22 or later
+- Docker (for the local Supabase stack)
+
+### Installation
 
 ```bash
 npm ci
-npx supabase start          # local Postgres, Auth, Realtime and the edge runtime
-cp .env.example .env.local  # paste API_URL and PUBLISHABLE_KEY from `npx supabase status`
-npm run dev                 # http://localhost:8080
+npx supabase start            # local Postgres, Auth, Realtime and edge runtime
+cp .env.example .env.local    # set API_URL and PUBLISHABLE_KEY from `npx supabase status`
+npm run dev                   # http://localhost:8080
 ```
 
-`npx supabase db reset` rebuilds the database from the migrations and the catalog. To fill the leaderboard with demo learners, load [`scripts/seed-demo.sql`](scripts/seed-demo.sql). After editing content, run `npm run db:catalog`.
+`npx supabase db reset` rebuilds the database from the migrations and the generated catalog. [`scripts/seed-demo.sql`](scripts/seed-demo.sql) loads demo learners for the leaderboard. After editing content, regenerate the catalog with `npm run db:catalog`.
 
-## Where things live
+### Verification
 
-| Folder | What's in it |
+```bash
+npm run typecheck && npm run lint && npm test
+npm run build && npm run check:bundle
+npx supabase test db
+npm run test:e2e
+```
+
+## Project structure
+
+| Path | Contents |
 |---|---|
-| [`src/pages/`](src/pages) | Galaxy, learn, dashboard, leaderboard, profiles, how it's built, account |
-| [`src/components/map/`](src/components/map) | Pan and zoom, framing, the map's geometry |
-| [`src/hooks/useProgress.ts`](src/hooks/useProgress.ts) | All data access: queries, RPCs, Realtime |
-| [`src/lib/`](src/lib) | Auth, progress rules (learning paths, constellations), the code runner and its worker |
-| [`src/content/`](src/content) | The skill graph, constellations, lessons and free resources |
-| [`content/`](content) | Challenges as written, with answers (never imported by the app) |
-| [`supabase/`](supabase) | Migrations, the generated catalog, pgTAP tests, the tutor function |
-| [`e2e/`](e2e), [`scripts/`](scripts) | Browser tests, the catalog generator, benchmarks, media capture |
+| [`src/pages/`](src/pages) | Galaxy, lessons, dashboard, leaderboard, profiles, architecture page, account |
+| [`src/components/map/`](src/components/map) | Pan and zoom, framing and map geometry |
+| [`src/hooks/useProgress.ts`](src/hooks/useProgress.ts) | All data access: queries, RPCs and Realtime subscriptions |
+| [`src/lib/`](src/lib) | Auth, progress rules (learning paths, constellations), code runner and worker |
+| [`src/content/`](src/content) | Skill graph, constellations, lessons and resources |
+| [`content/`](content) | Authored challenges including answers (never imported by the client) |
+| [`supabase/`](supabase) | Migrations, generated catalog, pgTAP tests and the tutor edge function |
+| [`scripts/`](scripts) | Catalog generator, bundle check, benchmarks and media capture |
+| [`e2e/`](e2e) | Playwright tests and shared selectors |
 
-Security model and trade-offs: [`SECURITY.md`](SECURITY.md).
+## Known limitations
 
-**Built with** React 18, TypeScript, Vite, Tailwind CSS, Radix, TanStack Query, Three.js, Supabase (Postgres, Auth, Realtime, Edge Functions, pg_cron), Gemini, Playwright and Vercel.
+- **Quiz feedback is stateless.** Per-question feedback reveals the correct answer, so a failed attempt informs the next one. Grading still enforces prerequisites and the XP ceiling. Question pools with randomised draws and attempt cooldowns are the documented mitigation if results ever carry weight.
+- **Single-player rank reads scan `player_stats`.** Acceptable at current scale (about 10 ms at 45,000 players); an index range-count RPC is the upgrade path.
 
-<div align="center">
+## Acknowledgements
 
-Built by **Aryan Sajiv** · Original hackathon version with **Divyansh Jhajhria** · [GitHub](https://github.com/aryansajiv19)
-
-</div>
+Built by [Aryan Sajiv](https://github.com/aryansajiv19). The original hackathon prototype was created with Divyansh Jhajhria.
